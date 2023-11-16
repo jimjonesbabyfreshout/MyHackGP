@@ -1,5 +1,5 @@
 import { OpenAIError, OpenAIStream } from '@/pages/api/openaistream';
-import { PalmStream } from '@/pages/api/palmstream';
+import { HackerGPTStream } from '@/pages/api/hackergptstream';
 import { ChatBody, Message } from '@/types/chat';
 
 // @ts-expect-error
@@ -33,7 +33,7 @@ enum ModelType {
 const getTokenLimit = (model: string) => {
   switch (model) {
     case ModelType.GPT35TurboInstruct:
-      return 4000;
+      return 8000;
     case ModelType.GoogleBrowsing:
       return 8000;
     case ModelType.GPT4:
@@ -56,10 +56,7 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    let reservedTokens = 1500;
-    if (model === 'gpt-3.5-turbo') {
-      reservedTokens = 2000;
-    }
+    let reservedTokens = 2000;
 
     await init((imports) => WebAssembly.instantiate(wasm, imports));
     const encoding = new Tiktoken(
@@ -265,7 +262,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (userStatusOk) {
       let stream;
       if (model === ModelType.GPT35TurboInstruct) {
-        stream = await PalmStream(messagesToSend);
+        stream = await HackerGPTStream(messagesToSend);
       } else {
         stream = await OpenAIStream(model, messagesToSend, answerMessage);
       }

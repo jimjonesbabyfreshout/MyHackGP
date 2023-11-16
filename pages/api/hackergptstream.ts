@@ -1,0 +1,238 @@
+import { Message } from '@/types/chat';
+import { OpenAIError } from "@/pages/api/openaistream" 
+
+import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
+import {
+  ParsedEvent,
+  ReconnectInterval,
+  createParser,
+} from 'eventsource-parser';
+
+
+export const HackerGPTStream = async (messages: Message[]) => {
+  const url = `https://api.openai.com/v1/chat/completions`;
+  const headers = {
+    Authorization: `Bearer ${process.env.SECRET_OPENAI_API_KEY}`,
+    'Content-Type': 'application/json',
+  };
+
+  let cleanedMessages = [];
+  const usageCapMessage = "Hold On! You've Hit Your Usage Cap.";
+
+  for (let i = 0; i < messages.length - 1; i++) {
+    const message = messages[i];
+    const nextMessage = messages[i + 1];
+
+    if (
+      !message ||
+      !nextMessage ||
+      typeof message.role === 'undefined' ||
+      typeof nextMessage.role === 'undefined'
+    ) {
+      console.error(
+        'One of the messages is undefined or does not have a role property'
+      );
+      continue;
+    }
+
+    if (
+      nextMessage.role === 'assistant' &&
+      nextMessage.content.includes(usageCapMessage)
+    ) {
+      if (message.role === 'user') {
+        i++;
+        continue;
+      }
+    } else if (nextMessage.role === 'user' && message.role === 'user') {
+      continue;
+    } else {
+      cleanedMessages.push(message);
+    }
+  }
+
+  if (
+    messages[messages.length - 1].role === 'user' &&
+    !messages[messages.length - 1].content.includes(usageCapMessage) &&
+    (cleanedMessages.length === 0 ||
+      cleanedMessages[cleanedMessages.length - 1].role !== 'user')
+  ) {
+    cleanedMessages.push(messages[messages.length - 1]);
+  }
+
+  if (
+    cleanedMessages.length % 2 === 0 &&
+    cleanedMessages[0]?.role === 'assistant'
+  ) {
+    cleanedMessages.shift();
+  }
+
+  const systemMessage: Message = {
+    role: 'system',
+    content: `${process.env.SECRET_PALM2_SYSTEM_PROMPT}`,
+  };
+
+  if (cleanedMessages[0]?.role !== 'system') {
+    cleanedMessages.unshift(systemMessage);
+  }
+
+  const queryPineconeVectorStore = async (question: string) => {
+    const embeddingsInstance = new OpenAIEmbeddings({
+      openAIApiKey: process.env.SECRET_OPENAI_API_KEY,
+    });
+
+    const queryEmbedding = await embeddingsInstance.embedQuery(question);
+
+    const PINECONE_QUERY_URL = `https://${process.env.SECRET_PINECONE_INDEX}-${process.env.SECRET_PINECONE_PROJECT_ID}.svc.${process.env.SECRET_PINECONE_ENVIRONMENT}.pinecone.io/query`;
+
+    const requestBody = {
+      topK: 1,
+      vector: queryEmbedding,
+      includeMetadata: true,
+      namespace: `${process.env.SECRET_PINECONE_NAMESPACE}`,
+    };
+
+    try {
+      const response = await fetch(PINECONE_QUERY_URL, {
+        method: 'POST',
+        headers: {
+          'Api-Key': `${process.env.SECRET_PINECONE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const matches = data.matches || [];
+      if (matches.length > 0 && matches[0].score > 0.82) {
+        const results = matches.map(
+          (match: { metadata: { text: any } }) => match.metadata?.text || ''
+        );
+        let resultsString = results.join(' ');
+
+        if (resultsString.length > 10000) {
+          resultsString = resultsString.substring(0, 10000);
+        }
+
+        return resultsString;
+      } else {
+        return 'None';
+      }
+    } catch (error) {
+      console.error(`Error querying Pinecone: ${error}`);
+      return 'None';
+    }
+  };
+
+  const usePinecone = process.env.USE_PINECONE === 'TRUE';
+
+  if (
+    usePinecone &&
+    cleanedMessages.length > 0 &&
+    cleanedMessages[cleanedMessages.length - 1].role === 'user'
+  ) {
+    const combinedLastMessages =
+      cleanedMessages[cleanedMessages.length - 1].content;
+    const pineconeResults = await queryPineconeVectorStore(
+      combinedLastMessages
+    );
+
+    if (pineconeResults !== 'None') {
+      cleanedMessages[cleanedMessages.length - 1].content =
+        'Provide a well-informed and accurate response to the ' +
+        'my question. Utilize your extensive knowledge and ' +
+        'expertise, and where relevant, incorporate insights from ' +
+        'the semantic search results to enrich your answer. Do not ' +
+        'rely on these results as the sole source of information— ' +
+        'they are supplemental and may not always be perfectly ' +
+        'accurate. Focus on delivering a precise and comprehensive ' +
+        'response that is reflective of your own understanding and ' +
+        'capabilities as HackerGPT. Here is the my question and ' +
+        'the related semantic search results:\n' +
+        `Question: """${combinedLastMessages}"""\n` +
+        'Semantic Search Context (Use as reference only): ' +
+        `"""${pineconeResults}"""\n` +
+        'Your response should directly address the my question ' +
+        'above, with clarity and depth.\n' +
+        'Response:';
+    }
+  }
+
+    const requestBody = {
+      model: `${process.env.SECRET_HACKERGPT_MODEL}`,
+      messages: cleanedMessages.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      })),
+      stream: true,
+      temperature: 0.4,
+      max_tokens: 1000,
+    };
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!res.body) {
+        throw new Error('Response body is null');
+    }
+
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+
+    if (res.status !== 200) {
+      const result = await res.json();
+      if (result.error) {
+        throw new OpenAIError(
+          result.error.message,
+          result.error.type,
+          result.error.param,
+          result.error.code
+        );
+      } else {
+        throw new Error(`OpenAI API returned an error: ${result.statusText}`);
+      }
+    }
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        const onParse = (event: ParsedEvent | ReconnectInterval) => {
+          if (event.type === 'event') {
+            const data = event.data;
+            if (data !== '[DONE]') {
+              try {
+                const json = JSON.parse(data);
+                if (json.choices[0].finish_reason != null) {
+                  controller.close();
+                  return;
+                }
+                const text = json.choices[0].delta.content;
+                const queue = encoder.encode(text);
+                controller.enqueue(queue);
+              } catch (e) {
+                controller.error(e);
+              }
+            }
+          }
+        };
+
+        const parser = createParser(onParse);
+
+        for await (const chunk of res.body as any) {
+          const content = decoder.decode(chunk);
+          if (content.trim() === 'data: [DONE]') {
+            controller.close();
+          } else {
+            parser.feed(content);
+          }
+        }
+      },
+    });
+
+    return stream;
+};
