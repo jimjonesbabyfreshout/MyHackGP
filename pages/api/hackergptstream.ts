@@ -160,7 +160,6 @@ export const HackerGPTStream = async (messages: Message[]) => {
     cleanedMessages.unshift(systemMessage);
   }
 
-  console.log(cleanedMessages);
   const requestBody = {
     model: `${process.env.SECRET_HACKERGPT_MODEL}`,
     messages: cleanedMessages.map((msg) => ({
