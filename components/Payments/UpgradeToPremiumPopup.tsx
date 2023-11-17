@@ -1,7 +1,12 @@
 import React, { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/router';
-import { IconX, IconCircleCheck, IconCurrencyBitcoin, IconLockOpen } from '@tabler/icons-react';
+import {
+  IconX,
+  IconCircleCheck,
+  IconCurrencyBitcoin,
+  IconLockOpen,
+} from '@tabler/icons-react';
 
 interface Props {
   isOpen: boolean;
@@ -25,7 +30,7 @@ const UpgradeToPremiumPopup: React.FC<Props> = ({
 
   const payWithCrypto = () => {
     // fetch the coinbase checkout url here
-  }
+  };
 
   return (
     <>
@@ -118,20 +123,28 @@ const UpgradeToPremiumPopup: React.FC<Props> = ({
                           </div>
                         </div>
                         <div className="flex flex-col gap-0 md:flex-row md:gap-2">
-                        <button
-                          onClick={upgradeToPremium}
-                          className="mb-4 w-full flex flex-row justify-center items-center gap-y-3 rounded bg-green-600 px-4 py-2 font-bold text-white text-sm transition duration-200 hover:bg-green-700"
-                        >
-                          <IconLockOpen color={'white'} size={22} strokeWidth={2} />
-                          Upgrade to Plus
-                        </button>
-                        <button
-                          onClick={payWithCrypto}
-                          className="mb-4 w-full flex flex-row justify-center items-center gap-y-3 rounded bg-orange-600 px-4 py-2 font-bold text-white text-sm transition duration-200 hover:bg-orange-700"
-                        >
-                          <IconCurrencyBitcoin color={'white'} size={22} strokeWidth={2} />
-                          Pay with Crypto
-                        </button>
+                          <button
+                            onClick={upgradeToPremium}
+                            className="mb-4 flex w-full flex-row items-center justify-center gap-y-3 rounded bg-green-600 px-4 py-2 text-sm font-bold text-white transition duration-200 hover:bg-green-700"
+                          >
+                            <IconLockOpen
+                              color={'white'}
+                              size={22}
+                              strokeWidth={2}
+                            />
+                            Upgrade to Plus
+                          </button>
+                          <button
+                            onClick={payWithCrypto}
+                            className="mb-4 flex w-full flex-row items-center justify-center gap-y-3 rounded bg-orange-600 px-4 py-2 text-sm font-bold text-white transition duration-200 hover:bg-orange-700"
+                          >
+                            <IconCurrencyBitcoin
+                              color={'white'}
+                              size={22}
+                              strokeWidth={2}
+                            />
+                            Pay with Crypto
+                          </button>
                         </div>
                         <div className="mb-2 flex items-center">
                           <div className="icon-container mr-2">
