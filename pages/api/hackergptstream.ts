@@ -98,8 +98,13 @@ export const HackerGPTStream = async (messages: Message[]) => {
       const data = await response.json();
       const matches = data.matches || [];
 
+      const minimumContextCount = 3;
+      if (matches.length < minimumContextCount) {
+        return 'None';
+      }
+  
       const filteredMatches = matches.filter(
-        (match: { score: number }) => match.score > 0.82
+        (match: { score: number }) => match.score > 0.83
       );
 
       if (filteredMatches.length > 0) {
