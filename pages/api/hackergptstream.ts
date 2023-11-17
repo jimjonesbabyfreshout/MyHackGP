@@ -167,7 +167,7 @@ export const HackerGPTStream = async (messages: Message[]) => {
       content: msg.content,
     })),
     stream: true,
-    temperature: 0.4,
+    temperature: process.env.HACKERGPT_TEMPERATURE ? parseFloat(process.env.HACKERGPT_TEMPERATURE) : 0.7,
     max_tokens: 1000,
   };
 
