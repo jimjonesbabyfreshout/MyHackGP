@@ -43,6 +43,7 @@ Before submitting your pull request, please make sure your changes pass our auto
 **Format Code**
 
 Format the code with Prettier before submitting a pull request.
+
 ```bash
 npm run format
 ```

@@ -1,5 +1,5 @@
 import { Message } from '@/types/chat';
-import { OpenAIError } from "@/pages/api/openaistream" 
+import { OpenAIError } from '@/pages/api/openaistream';
 
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import {
@@ -7,7 +7,6 @@ import {
   ReconnectInterval,
   createParser,
 } from 'eventsource-parser';
-
 
 export const HackerGPTStream = async (messages: Message[]) => {
   const url = `https://api.openai.com/v1/chat/completions`;
@@ -66,15 +65,6 @@ export const HackerGPTStream = async (messages: Message[]) => {
     cleanedMessages.shift();
   }
 
-  const systemMessage: Message = {
-    role: 'system',
-    content: `${process.env.SECRET_PALM2_SYSTEM_PROMPT}`,
-  };
-
-  if (cleanedMessages[0]?.role !== 'system') {
-    cleanedMessages.unshift(systemMessage);
-  }
-
   const queryPineconeVectorStore = async (question: string) => {
     const embeddingsInstance = new OpenAIEmbeddings({
       openAIApiKey: process.env.SECRET_OPENAI_API_KEY,
@@ -85,7 +75,7 @@ export const HackerGPTStream = async (messages: Message[]) => {
     const PINECONE_QUERY_URL = `https://${process.env.SECRET_PINECONE_INDEX}-${process.env.SECRET_PINECONE_PROJECT_ID}.svc.${process.env.SECRET_PINECONE_ENVIRONMENT}.pinecone.io/query`;
 
     const requestBody = {
-      topK: 1,
+      topK: 5,
       vector: queryEmbedding,
       includeMetadata: true,
       namespace: `${process.env.SECRET_PINECONE_NAMESPACE}`,
@@ -107,17 +97,30 @@ export const HackerGPTStream = async (messages: Message[]) => {
 
       const data = await response.json();
       const matches = data.matches || [];
-      if (matches.length > 0 && matches[0].score > 0.82) {
-        const results = matches.map(
-          (match: { metadata: { text: any } }) => match.metadata?.text || ''
-        );
-        let resultsString = results.join(' ');
 
-        if (resultsString.length > 10000) {
-          resultsString = resultsString.substring(0, 10000);
+      const filteredMatches = matches.filter(
+        (match: { score: number }) => match.score > 0.82
+      );
+
+      if (filteredMatches.length > 0) {
+        let formattedResults = filteredMatches
+          .map((match: { metadata: { text: string } }, index: any) => {
+            const contextText = match.metadata?.text || '';
+            return `[CONTEXT ${index}]:\n${contextText}\n[END CONTEXT ${index}]\n\n`;
+          })
+          .join('');
+
+        while (formattedResults.length > 7500) {
+          let lastContextIndex = formattedResults.lastIndexOf('[CONTEXT ');
+          if (lastContextIndex === -1) {
+            break;
+          }
+          formattedResults = formattedResults
+            .substring(0, lastContextIndex)
+            .trim();
         }
 
-        return resultsString;
+        return formattedResults || 'None';
       } else {
         return 'None';
       }
@@ -128,6 +131,11 @@ export const HackerGPTStream = async (messages: Message[]) => {
   };
 
   const usePinecone = process.env.USE_PINECONE === 'TRUE';
+
+  let systemMessage: Message = {
+    role: 'system',
+    content: `${process.env.SECRET_OPENAI_SYSTEM_PROMPT}`,
+  };
 
   if (
     usePinecone &&
@@ -141,98 +149,90 @@ export const HackerGPTStream = async (messages: Message[]) => {
     );
 
     if (pineconeResults !== 'None') {
-      cleanedMessages[cleanedMessages.length - 1].content =
-        'Provide a well-informed and accurate response to the ' +
-        'my question. Utilize your extensive knowledge and ' +
-        'expertise, and where relevant, incorporate insights from ' +
-        'the semantic search results to enrich your answer. Do not ' +
-        'rely on these results as the sole source of information— ' +
-        'they are supplemental and may not always be perfectly ' +
-        'accurate. Focus on delivering a precise and comprehensive ' +
-        'response that is reflective of your own understanding and ' +
-        'capabilities as HackerGPT. Here is the my question and ' +
-        'the related semantic search results:\n' +
-        `Question: """${combinedLastMessages}"""\n` +
-        'Semantic Search Context (Use as reference only): ' +
-        `"""${pineconeResults}"""\n` +
-        'Your response should directly address the my question ' +
-        'above, with clarity and depth.\n' +
-        'Response:';
+      systemMessage.content =
+        `${process.env.SECRET_OPENAI_SYSTEM_PROMPT} ` +
+        `${process.env.SECRET_PINECONE_SYSTEM_PROMPT}` +
+        `Context:\n ${pineconeResults}`;
     }
   }
 
-    const requestBody = {
-      model: `${process.env.SECRET_HACKERGPT_MODEL}`,
-      messages: cleanedMessages.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      })),
-      stream: true,
-      temperature: 0.4,
-      max_tokens: 1000,
-    };
+  if (cleanedMessages[0]?.role !== 'system') {
+    cleanedMessages.unshift(systemMessage);
+  }
 
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(requestBody),
-    });
+  console.log(cleanedMessages);
+  const requestBody = {
+    model: `${process.env.SECRET_HACKERGPT_MODEL}`,
+    messages: cleanedMessages.map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+    })),
+    stream: true,
+    temperature: 0.4,
+    max_tokens: 1000,
+  };
 
-    if (!res.body) {
-        throw new Error('Response body is null');
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!res.body) {
+    throw new Error('Response body is null');
+  }
+
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+
+  if (res.status !== 200) {
+    const result = await res.json();
+    if (result.error) {
+      throw new OpenAIError(
+        result.error.message,
+        result.error.type,
+        result.error.param,
+        result.error.code
+      );
+    } else {
+      throw new Error(`OpenAI API returned an error: ${result.statusText}`);
     }
+  }
 
-    const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
-
-    if (res.status !== 200) {
-      const result = await res.json();
-      if (result.error) {
-        throw new OpenAIError(
-          result.error.message,
-          result.error.type,
-          result.error.param,
-          result.error.code
-        );
-      } else {
-        throw new Error(`OpenAI API returned an error: ${result.statusText}`);
-      }
-    }
-
-    const stream = new ReadableStream({
-      async start(controller) {
-        const onParse = (event: ParsedEvent | ReconnectInterval) => {
-          if (event.type === 'event') {
-            const data = event.data;
-            if (data !== '[DONE]') {
-              try {
-                const json = JSON.parse(data);
-                if (json.choices[0].finish_reason != null) {
-                  controller.close();
-                  return;
-                }
-                const text = json.choices[0].delta.content;
-                const queue = encoder.encode(text);
-                controller.enqueue(queue);
-              } catch (e) {
-                controller.error(e);
+  const stream = new ReadableStream({
+    async start(controller) {
+      const onParse = (event: ParsedEvent | ReconnectInterval) => {
+        if (event.type === 'event') {
+          const data = event.data;
+          if (data !== '[DONE]') {
+            try {
+              const json = JSON.parse(data);
+              if (json.choices[0].finish_reason != null) {
+                controller.close();
+                return;
               }
+              const text = json.choices[0].delta.content;
+              const queue = encoder.encode(text);
+              controller.enqueue(queue);
+            } catch (e) {
+              controller.error(e);
             }
           }
-        };
-
-        const parser = createParser(onParse);
-
-        for await (const chunk of res.body as any) {
-          const content = decoder.decode(chunk);
-          if (content.trim() === 'data: [DONE]') {
-            controller.close();
-          } else {
-            parser.feed(content);
-          }
         }
-      },
-    });
+      };
 
-    return stream;
+      const parser = createParser(onParse);
+
+      for await (const chunk of res.body as any) {
+        const content = decoder.decode(chunk);
+        if (content.trim() === 'data: [DONE]') {
+          controller.close();
+        } else {
+          parser.feed(content);
+        }
+      }
+    },
+  });
+
+  return stream;
 };
