@@ -10,6 +10,9 @@ export type Role = 'assistant' | 'user' | 'system';
 export interface ChatBody {
   model: OpenAIModel['id'];
   messages: Message[];
+  max_tokens?: number;
+  temperature?: number;
+  stream?: boolean;
 }
 
 export interface Conversation {

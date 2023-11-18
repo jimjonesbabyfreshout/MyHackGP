@@ -8,7 +8,12 @@ import {
   createParser,
 } from 'eventsource-parser';
 
-export const HackerGPTStream = async (messages: Message[]) => {
+export const HackerGPTStream = async (
+  messages: Message[],
+  modelTemperature: number,
+  maxTokens: number,
+  enableStream: boolean
+) => {
   const url = `https://api.openai.com/v1/chat/completions`;
   const headers = {
     Authorization: `Bearer ${process.env.SECRET_OPENAI_API_KEY}`,
@@ -102,7 +107,7 @@ export const HackerGPTStream = async (messages: Message[]) => {
       if (matches.length < minimumContextCount) {
         return 'None';
       }
-  
+
       const filteredMatches = matches.filter(
         (match: { score: number }) => match.score > 0.83
       );
@@ -171,9 +176,9 @@ export const HackerGPTStream = async (messages: Message[]) => {
       role: msg.role,
       content: msg.content,
     })),
-    stream: true,
-    temperature: process.env.HACKERGPT_TEMPERATURE ? parseFloat(process.env.HACKERGPT_TEMPERATURE) : 0.7,
-    max_tokens: 1000,
+    stream: enableStream,
+    temperature: modelTemperature,
+    max_tokens: maxTokens,
   };
 
   const res = await fetch(url, {
@@ -181,13 +186,6 @@ export const HackerGPTStream = async (messages: Message[]) => {
     headers: headers,
     body: JSON.stringify(requestBody),
   });
-
-  if (!res.body) {
-    throw new Error('Response body is null');
-  }
-
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
 
   if (res.status !== 200) {
     const result = await res.json();
@@ -203,7 +201,18 @@ export const HackerGPTStream = async (messages: Message[]) => {
     }
   }
 
-  const stream = new ReadableStream({
+  if (!enableStream) {
+    const data = await res.json();
+    const messages = data.choices.map(
+      (choice: { message: { content: any } }) => choice.message.content
+    );
+    return messages.join('\n');
+  }
+
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+
+  const streamResult = new ReadableStream({
     async start(controller) {
       const onParse = (event: ParsedEvent | ReconnectInterval) => {
         if (event.type === 'event') {
@@ -238,5 +247,5 @@ export const HackerGPTStream = async (messages: Message[]) => {
     },
   });
 
-  return stream;
+  return streamResult;
 };

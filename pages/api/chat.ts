@@ -46,7 +46,17 @@ const getTokenLimit = (model: string) => {
 const handler = async (req: Request): Promise<Response> => {
   try {
     const authToken = req.headers.get('Authorization');
-    let { model, messages } = (await req.json()) as ChatBody;
+    let { messages, model, max_tokens, temperature, stream } =
+      (await req.json()) as ChatBody;
+
+    max_tokens = max_tokens || 1000;
+    stream = stream || true;
+
+    const defaultTemperature = process.env.HACKERGPT_TEMPERATURE
+      ? parseFloat(process.env.HACKERGPT_TEMPERATURE)
+      : 0.6;
+    temperature = temperature ?? defaultTemperature;
+
     const tokenLimit = getTokenLimit(model);
 
     if (!tokenLimit) {
@@ -260,14 +270,19 @@ const handler = async (req: Request): Promise<Response> => {
     encoding.free();
 
     if (userStatusOk) {
-      let stream;
+      let streamResult;
       if (model === ModelType.GPT35TurboInstruct) {
-        stream = await HackerGPTStream(messagesToSend);
+        streamResult = await HackerGPTStream(
+          messagesToSend,
+          temperature,
+          max_tokens,
+          stream
+        );
       } else {
-        stream = await OpenAIStream(model, messagesToSend, answerMessage);
+        streamResult = await OpenAIStream(model, messagesToSend, answerMessage);
       }
 
-      return new Response(stream, {
+      return new Response(streamResult, {
         headers: corsHeaders,
       });
     } else {
