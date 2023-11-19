@@ -33,25 +33,49 @@ const getTokenLimit = (model: string) => {
 
 const handler = async (req: Request): Promise<Response> => {
   try {
+    if (!req.headers.has('Authorization')) {
+      return new Response('Authorization header is missing', { status: 400, headers: corsHeaders });
+    }
+    
     const authToken = req.headers.get('Authorization');
-    let { messages, model, max_tokens, temperature, stream } =
-      (await req.json()) as ChatBody;
+    const chatBody = await req.json() as ChatBody;
+    const allowedKeys = ['messages', 'model', 'max_tokens', 'temperature', 'stream'];
+    const providedKeys = Object.keys(chatBody);
 
-    max_tokens = max_tokens || 1000;
-    stream = stream || false;
+    const unrecognizedKeys = providedKeys.filter(key => !allowedKeys.includes(key));
+    if (unrecognizedKeys.length > 0) {
+      return new Response(`Unrecognized parameters: ${unrecognizedKeys.join(', ')}`, { status: 400, headers: corsHeaders });
+    }
 
-    const defaultTemperature = process.env.HACKERGPT_TEMPERATURE
-      ? parseFloat(process.env.HACKERGPT_TEMPERATURE)
-      : 0.6;
-    temperature = temperature ?? defaultTemperature;
+    if (!chatBody.model || !Array.isArray(chatBody.messages) || chatBody.messages.length === 0) {
+      return new Response('The "model" and "messages" parameters are required and cannot be empty', { status: 400, headers: corsHeaders });
+    }
+
+    const { messages, model, max_tokens = 1000, temperature} = chatBody;
+    let { stream } = chatBody;
+
+    if (stream === undefined) {
+      stream = false;
+    }
+
+    if (stream !== true && stream !== false) {
+      return new Response('The "stream" parameter must be a boolean (true or false)', { status: 400, headers: corsHeaders });
+    }
+    
+    const defaultTemperature = parseFloat(process.env.HACKERGPT_TEMPERATURE || '0.6');
+    const temp = temperature ?? defaultTemperature;
+
+    if (temperature !== undefined && (typeof temperature !== 'number' || temperature < 0 || temperature > 2)) {
+      return new Response('The "temperature" parameter must be a number between 0 and 2', { status: 400, headers: corsHeaders });
+    }
+
+    if (max_tokens !== undefined && (typeof max_tokens !== 'number' || max_tokens < 1 || max_tokens > 2000)) {
+      return new Response('The "max_tokens" parameter must be a number between 1 and 2000', { status: 400, headers: corsHeaders });
+    }
 
     const tokenLimit = getTokenLimit(model);
-
     if (!tokenLimit) {
-      return new Response('Error: Model not found', {
-        status: 400,
-        headers: corsHeaders,
-      });
+      return new Response('Error: Model not found. Only "hackergpt" model is supported', { status: 400, headers: corsHeaders });
     }
 
     let reservedTokens = 2000;
@@ -94,32 +118,32 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const skipFirebaseStatusCheck =
-      process.env.SKIP_FIREBASE_STATUS_CHECK === 'TRUE';
+    process.env.SKIP_FIREBASE_STATUS_CHECK === 'TRUE';
 
     let userStatusOk = true;
 
     if (!skipFirebaseStatusCheck) {
-      const response = await fetch(
-        `${process.env.SECRET_CHECK_USER_STATUS_FIREBASE_FUNCTION_URL}`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `${authToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: model,
-          }),
+      try {
+        const response = await fetch(`${process.env.SECRET_CHECK_API_STATUS_FIREBASE_FUNCTION_URL}`, {
+            method: 'POST',
+            headers: {
+              Authorization: `${authToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ model: model }),
+          }
+        );
+
+        userStatusOk = response.ok;
+        if (!response.ok) {
+          const errorText = await response.text();
+          return new Response(errorText, { headers: corsHeaders });
         }
-      );
-
-      userStatusOk = response.ok;
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        return new Response(errorText, { headers: corsHeaders });
-      }
+    } catch (firebaseError) {
+      console.error('Firebase call failed:', firebaseError);
+      return new Response('Error communicating with Firebase', { status: 500, headers: corsHeaders });
     }
+  }
 
     encoding.free();
 
@@ -128,7 +152,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (model === ModelType.HACKERGPT) {
         streamResult = await HackerGPTStream(
           messagesToSend,
-          temperature,
+          temp,
           max_tokens,
           stream
         );

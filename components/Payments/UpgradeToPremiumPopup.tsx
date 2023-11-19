@@ -153,6 +153,20 @@ const UpgradeToPremiumPopup: React.FC<Props> = ({
                               strokeWidth={2}
                             />
                           </div>
+                          <div className="text-container flex-1">
+                            <p className="overflow-hidden truncate whitespace-nowrap">
+                              Access to our HackerGPT API
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mb-2 flex items-center">
+                          <div className="icon-container mr-2">
+                            <IconCircleCheck
+                              color={'#43A047'}
+                              size={22}
+                              strokeWidth={2}
+                            />
+                          </div>
                           <div className="text-container">
                             <p>Access to Web Browsing plugin</p>
                           </div>
