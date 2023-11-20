@@ -491,7 +491,7 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
                         </button>
                       </>
                     ) : (
-                      <div className="text-white">
+                      <div className="text-black dark:text-white">
                         To use the HackerGPT API with your app and create API
                         keys, you need to have a Plus Subscription.
                       </div>
