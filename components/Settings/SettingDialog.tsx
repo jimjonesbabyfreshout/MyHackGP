@@ -30,7 +30,6 @@ import { useRouter } from 'next/navigation';
 import firebase from '@/utils/server/firebase-client-init';
 
 import { ApiKey } from '@/types/api';
-import { v4 as uuidv4 } from 'uuid';
 
 interface Props {
   open: boolean;
@@ -76,65 +75,41 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
   const [userApiKeys, setUserApiKeys] = useState<ApiKey[]>([]);
 
   const handleCreateNewKey = async () => {
-    const db = firebase.firestore(app);
+    const apiKeyUrl = `https://us-central1-hackergpt-6c79e.cloudfunctions.net/createApiKey`
 
     try {
-      if (auth && auth.currentUser) {
-        const userEmail = auth.currentUser.email;
-        const userId = auth.currentUser.uid;
+        const token = await auth.currentUser?.getIdToken();
 
-        const currentKeys = await db
-          .collection('apiKeys')
-          .where('userId', '==', userId)
-          .get();
+        const response = await fetch(apiKeyUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                keyName: keyName
+            })
+        });
 
-        if (currentKeys.size >= 10) {
-          alert('You have reached the maximum limit of 10 API keys.');
-          return;
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const generatedToken = `sk-${uuidv4()}`;
-        const censoredKey = `${generatedToken.substring(
-          0,
-          2
-        )}-...${generatedToken.substring(generatedToken.length - 4)}`;
+        const newKey = await response.json();
 
-        setNewToken(generatedToken);
+        const creationTime = new Date(newKey.created).toLocaleString();
+
+        console.log(creationTime)
+
+        setNewToken(newKey.key);
         setShowTokenPopup(true);
         setKeyCreated(true);
 
-        const newKeyData = {
-          keyName: keyName,
-          key: generatedToken,
-          censoredKey: censoredKey,
-          userId: auth.currentUser.uid,
-          userEmail: userEmail,
-          created: new Date(),
-          lastUsed: null,
-        };
-
-        db.collection('apiKeys')
-          .add(newKeyData)
-          .then((docRef) => {
-            const tempTimestamp = firebase.firestore.Timestamp.fromDate(
-              new Date()
-            );
-
-            setUserApiKeys((prevKeys) => [
-              ...prevKeys,
-              { ...newKeyData, id: docRef.id, created: tempTimestamp },
-            ]);
-          })
-          .catch((e) => {
-            console.error('Error adding document: ', e);
-          });
-      } else {
-        console.error('Auth service not initialized or no user is logged in');
-      }
-    } catch (e) {
-      console.error('Error adding document: ', e);
+        setUserApiKeys(prevKeys => [...prevKeys, { ...newKey, created: creationTime }]);
+    } catch (error) {
+        console.error('Error creating API key:', error);
     }
-  };
+};
 
   const handleDeleteKey = async (keyId: string | undefined) => {
     const db = firebase.firestore(app);
@@ -150,9 +125,9 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
   const fetchUserApiKeys = async () => {
     const auth = firebase.auth();
     const db = firebase.firestore(app);
-
+  
     let keys: ApiKey[] = [];
-
+  
     if (auth.currentUser) {
       const userId = auth.currentUser.uid;
       try {
@@ -160,9 +135,17 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
           .collection('apiKeys')
           .where('userId', '==', userId)
           .get();
-
-        querySnapshot.forEach((doc: { id: any; data: () => any }) => {
-          keys.push({ id: doc.id, ...doc.data() });
+  
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          keys.push({
+            id: doc.id,
+            keyName: data.keyName,
+            key: data.key,
+            censoredKey: data.censoredKey,
+            created: data.created ? data.created.toDate().toISOString() : null,
+            lastUsed: data.lastUsed ? data.lastUsed.toDate().toISOString() : null,
+          });
         });
       } catch (error) {
         console.error('Error fetching user API keys:', error);
@@ -170,7 +153,7 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
     }
     return keys;
   };
-
+  
   useEffect(() => {
     const fetchKeysIfPremium = async () => {
       if (selectedTab === 'API keys' && isPremium) {
@@ -448,16 +431,12 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
                                       </td>
                                       <td className="whitespace-nowrap px-4 py-4 text-sm text-black dark:text-white">
                                         {key.created
-                                          ? key.created
-                                              .toDate()
-                                              .toLocaleDateString()
+                                          ? new Date(key.created).toLocaleDateString()
                                           : 'Never'}
                                       </td>
                                       <td className="whitespace-nowrap px-6 py-4 text-sm text-black dark:text-white">
                                         {key.lastUsed
-                                          ? new Date(
-                                              key.lastUsed.toDate()
-                                            ).toLocaleDateString()
+                                          ? new Date(key.lastUsed).toLocaleDateString()
                                           : 'Never'}
                                       </td>
                                       <td className="whitespace-nowrap px-4 py-4 text-sm font-medium">
