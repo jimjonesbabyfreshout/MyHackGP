@@ -75,24 +75,30 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
   const [userApiKeys, setUserApiKeys] = useState<ApiKey[]>([]);
 
   const handleCreateNewKey = async () => {
-    const apiKeyUrl = `${process.env.NEXT_PUBLIC_CREATE_API_KEY_FIREBASE_FUNCTION_URL}`;
+    const createApiKeyUrl = `${process.env.NEXT_PUBLIC_CREATE_API_KEY_FIREBASE_FUNCTION_URL}`;
+
+    if (!auth.currentUser) {
+      console.error('User not authenticated');
+      return;
+    }
 
     try {
       const token = await auth.currentUser?.getIdToken();
 
-      const response = await fetch(apiKeyUrl, {
+      const response = await fetch(createApiKeyUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          keyName: keyName,
-        }),
+        body: JSON.stringify({ keyName }),
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(
+          `Error creating API key: ${errorText || response.status}`
+        );
       }
 
       const newKey = await response.json();
@@ -113,10 +119,38 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
   };
 
   const handleDeleteKey = async (keyId: string | undefined) => {
-    const db = firebase.firestore(app);
+    if (!auth.currentUser) {
+      console.error('User not authenticated');
+      return;
+    }
+
+    if (!keyId) {
+      console.error('Key ID is required');
+      return;
+    }
+
+    const deleteApiKeyUrl = `${process.env.NEXT_PUBLIC_DELETE_API_KEY_FIREBASE_FUNCTION_URL}`;
 
     try {
-      await db.collection('apiKeys').doc(keyId).delete();
+      const token = await auth.currentUser?.getIdToken();
+
+      const response = await fetch(deleteApiKeyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ keyId }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Error deleting API key: ${errorText || response.status}`
+        );
+      }
+
+      await response.json();
       setUserApiKeys((prevKeys) => prevKeys.filter((key) => key.id !== keyId));
     } catch (error) {
       console.error('Error deleting API key:', error);
