@@ -75,41 +75,42 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
   const [userApiKeys, setUserApiKeys] = useState<ApiKey[]>([]);
 
   const handleCreateNewKey = async () => {
-    const apiKeyUrl = `https://us-central1-hackergpt-6c79e.cloudfunctions.net/createApiKey`
+    const apiKeyUrl = `${process.env.NEXT_PUBLIC_CREATE_API_KEY_FIREBASE_FUNCTION_URL}`;
 
     try {
-        const token = await auth.currentUser?.getIdToken();
+      const token = await auth.currentUser?.getIdToken();
 
-        const response = await fetch(apiKeyUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                keyName: keyName
-            })
-        });
+      const response = await fetch(apiKeyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          keyName: keyName,
+        }),
+      });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-        const newKey = await response.json();
+      const newKey = await response.json();
 
-        const creationTime = new Date(newKey.created).toLocaleString();
+      const creationTime = new Date(newKey.created).toLocaleString();
 
-        console.log(creationTime)
+      setNewToken(newKey.key);
+      setShowTokenPopup(true);
+      setKeyCreated(true);
 
-        setNewToken(newKey.key);
-        setShowTokenPopup(true);
-        setKeyCreated(true);
-
-        setUserApiKeys(prevKeys => [...prevKeys, { ...newKey, created: creationTime }]);
+      setUserApiKeys((prevKeys) => [
+        ...prevKeys,
+        { ...newKey, created: creationTime },
+      ]);
     } catch (error) {
-        console.error('Error creating API key:', error);
+      console.error('Error creating API key:', error);
     }
-};
+  };
 
   const handleDeleteKey = async (keyId: string | undefined) => {
     const db = firebase.firestore(app);
@@ -125,9 +126,9 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
   const fetchUserApiKeys = async () => {
     const auth = firebase.auth();
     const db = firebase.firestore(app);
-  
+
     let keys: ApiKey[] = [];
-  
+
     if (auth.currentUser) {
       const userId = auth.currentUser.uid;
       try {
@@ -135,7 +136,7 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
           .collection('apiKeys')
           .where('userId', '==', userId)
           .get();
-  
+
         querySnapshot.forEach((doc) => {
           const data = doc.data();
           keys.push({
@@ -144,7 +145,9 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
             key: data.key,
             censoredKey: data.censoredKey,
             created: data.created ? data.created.toDate().toISOString() : null,
-            lastUsed: data.lastUsed ? data.lastUsed.toDate().toISOString() : null,
+            lastUsed: data.lastUsed
+              ? data.lastUsed.toDate().toISOString()
+              : null,
           });
         });
       } catch (error) {
@@ -153,7 +156,7 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
     }
     return keys;
   };
-  
+
   useEffect(() => {
     const fetchKeysIfPremium = async () => {
       if (selectedTab === 'API keys' && isPremium) {
@@ -431,12 +434,16 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
                                       </td>
                                       <td className="whitespace-nowrap px-4 py-4 text-sm text-black dark:text-white">
                                         {key.created
-                                          ? new Date(key.created).toLocaleDateString()
+                                          ? new Date(
+                                              key.created
+                                            ).toLocaleDateString()
                                           : 'Never'}
                                       </td>
                                       <td className="whitespace-nowrap px-6 py-4 text-sm text-black dark:text-white">
                                         {key.lastUsed
-                                          ? new Date(key.lastUsed).toLocaleDateString()
+                                          ? new Date(
+                                              key.lastUsed
+                                            ).toLocaleDateString()
                                           : 'Never'}
                                       </td>
                                       <td className="whitespace-nowrap px-4 py-4 text-sm font-medium">
