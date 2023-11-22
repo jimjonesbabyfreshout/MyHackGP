@@ -75,12 +75,12 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
   const [userApiKeys, setUserApiKeys] = useState<ApiKey[]>([]);
 
   const handleCreateNewKey = async () => {
-    const createApiKeyUrl = `${process.env.NEXT_PUBLIC_CREATE_API_KEY_FIREBASE_FUNCTION_URL}`;
-
     if (!auth.currentUser) {
       console.error('User not authenticated');
       return;
     }
+
+    const createApiKeyUrl = `${process.env.NEXT_PUBLIC_CREATE_API_KEY_FIREBASE_FUNCTION_URL}`;
 
     try {
       const token = await auth.currentUser?.getIdToken();
@@ -95,10 +95,16 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Error creating API key: ${errorText || response.status}`
-        );
+        try {
+          const errorText = await response.text();
+          const errorMessage = errorText || `Error code: ${response.status}`;
+          console.error(`Error creating API key: ${errorMessage}`);
+        } catch (parseError) {
+          console.error(
+            `Error creating API key, status code: ${response.status}`
+          );
+        }
+        return;
       }
 
       const newKey = await response.json();
@@ -135,7 +141,7 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
       const token = await auth.currentUser?.getIdToken();
 
       const response = await fetch(deleteApiKeyUrl, {
-        method: 'POST',
+        method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
@@ -144,10 +150,16 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Error deleting API key: ${errorText || response.status}`
-        );
+        try {
+          const errorText = await response.text();
+          const errorMessage = errorText || `Error code: ${response.status}`;
+          console.error(`Error deleting API key: ${errorMessage}`);
+        } catch (parseError) {
+          console.error(
+            `Error deleting API key, status code: ${response.status}`
+          );
+        }
+        return;
       }
 
       await response.json();
@@ -158,37 +170,42 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
   };
 
   const fetchUserApiKeys = async () => {
-    const auth = firebase.auth();
-    const db = firebase.firestore(app);
-
-    let keys: ApiKey[] = [];
-
-    if (auth.currentUser) {
-      const userId = auth.currentUser.uid;
-      try {
-        const querySnapshot = await db
-          .collection('apiKeys')
-          .where('userId', '==', userId)
-          .get();
-
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          keys.push({
-            id: doc.id,
-            keyName: data.keyName,
-            key: data.key,
-            censoredKey: data.censoredKey,
-            created: data.created ? data.created.toDate().toISOString() : null,
-            lastUsed: data.lastUsed
-              ? data.lastUsed.toDate().toISOString()
-              : null,
-          });
-        });
-      } catch (error) {
-        console.error('Error fetching user API keys:', error);
-      }
+    if (!auth.currentUser) {
+      console.error('User not authenticated');
+      return;
     }
-    return keys;
+
+    const fetchApiKeysUrl = `${process.env.NEXT_PUBLIC_FETCH_API_KEYS_FIREBASE_FUNCTION_URL}`;
+
+    try {
+      const token = await auth.currentUser?.getIdToken();
+
+      const response = await fetch(fetchApiKeysUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        try {
+          const errorText = await response.text();
+          const errorMessage = errorText || `Error code: ${response.status}`;
+          console.error(`Error fetching user API keys: ${errorMessage}`);
+        } catch (parseError) {
+          console.error(
+            `Error fetching user API keys:, status code: ${response.status}`
+          );
+        }
+        return;
+      }
+
+      const keys = await response.json();
+      return keys;
+    } catch (error) {
+      console.error('Error fetching user API keys:', error);
+      return [];
+    }
   };
 
   useEffect(() => {
