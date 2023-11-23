@@ -147,22 +147,27 @@ export const HackerGPTStream = async (
     content: `${process.env.SECRET_OPENAI_SYSTEM_PROMPT}`,
   };
 
+  const MIN_MESSAGE_LENGTH = 40;
+
   if (
     usePinecone &&
     cleanedMessages.length > 0 &&
     cleanedMessages[cleanedMessages.length - 1].role === 'user'
   ) {
-    const combinedLastMessages =
+    const lastMessageContent =
       cleanedMessages[cleanedMessages.length - 1].content;
-    const pineconeResults = await queryPineconeVectorStore(
-      combinedLastMessages
-    );
 
-    if (pineconeResults !== 'None') {
-      systemMessage.content =
-        `${process.env.SECRET_OPENAI_SYSTEM_PROMPT} ` +
-        `${process.env.SECRET_PINECONE_SYSTEM_PROMPT}` +
-        `Context:\n ${pineconeResults}`;
+    if (lastMessageContent.length > MIN_MESSAGE_LENGTH) {
+      const pineconeResults = await queryPineconeVectorStore(
+        lastMessageContent
+      );
+
+      if (pineconeResults !== 'None') {
+        systemMessage.content =
+          `${process.env.SECRET_OPENAI_SYSTEM_PROMPT} ` +
+          `${process.env.SECRET_PINECONE_SYSTEM_PROMPT}` +
+          `Context:\n ${pineconeResults}`;
+      }
     }
   }
 
