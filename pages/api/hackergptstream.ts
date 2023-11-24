@@ -14,14 +14,19 @@ export const HackerGPTStream = async (
   maxTokens: number,
   enableStream: boolean
 ) => {
-  const url = `https://api.openai.com/v1/chat/completions`;
-  const headers = {
+  const openAIUrl = `https://api.openai.com/v1/chat/completions`;
+  const openRouterUrl = `https://openrouter.ai/api/v1/chat/completions`;
+
+  const openAIHeaders = {
     Authorization: `Bearer ${process.env.SECRET_OPENAI_API_KEY}`,
     'Content-Type': 'application/json',
   };
 
   let cleanedMessages = [];
-  const usageCapMessage = "Hold On! You've Hit Your Usage Cap.";
+
+  const MESSAGE_USAGE_CAP_WARNING = "Hold On! You've Hit Your Usage Cap.";
+  const MIN_LAST_MESSAGE_LENGTH = 30;
+  const MAX_LAST_MESSAGE_LENGTH = 3000;
 
   for (let i = 0; i < messages.length - 1; i++) {
     const message = messages[i];
@@ -41,7 +46,7 @@ export const HackerGPTStream = async (
 
     if (
       nextMessage.role === 'assistant' &&
-      nextMessage.content.includes(usageCapMessage)
+      nextMessage.content.includes(MESSAGE_USAGE_CAP_WARNING)
     ) {
       if (message.role === 'user') {
         i++;
@@ -56,7 +61,9 @@ export const HackerGPTStream = async (
 
   if (
     messages[messages.length - 1].role === 'user' &&
-    !messages[messages.length - 1].content.includes(usageCapMessage) &&
+    !messages[messages.length - 1].content.includes(
+      MESSAGE_USAGE_CAP_WARNING
+    ) &&
     (cleanedMessages.length === 0 ||
       cleanedMessages[cleanedMessages.length - 1].role !== 'user')
   ) {
@@ -109,7 +116,7 @@ export const HackerGPTStream = async (
       }
 
       const filteredMatches = matches.filter(
-        (match: { score: number }) => match.score > 0.83
+        (match: { score: number }) => match.score > 0.8
       );
 
       if (filteredMatches.length > 0) {
@@ -147,27 +154,216 @@ export const HackerGPTStream = async (
     content: `${process.env.SECRET_OPENAI_SYSTEM_PROMPT}`,
   };
 
-  const MIN_MESSAGE_LENGTH = 40;
+  const translateToEnglish = async (text: any) => {
+    const requestBody = {
+      model: ['gryphe/mythomax-l2-13b'],
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a translation AI. ' +
+            'Your task is to translate user input text into English accurately. ' +
+            'Focus on providing a clear and direct translation. ' +
+            'Do not add any additional comments or information.',
+        },
+        {
+          role: 'user',
+          content:
+            'Translate the provided text into English. ' +
+            'Focus on accuracy and clarity. ' +
+            'Ensure the translation is direct and concise. ' +
+            'Add no comments, opinions, or extraneous information. ' +
+            'Accurately convey the original meaning and context in English. ' +
+            'Avoid engaging in discussions or providing interpretations beyond the translation.' +
+            'Translate: ' +
+            text,
+        },
+      ],
+      temperature: 0.1,
+      route: 'fallback',
+    };
+
+    try {
+      const request = await fetch(openRouterUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.SECRET_OPENROUTER_API_KEY}`,
+          'HTTP-Referer': 'https://www.hackergpt.chat',
+          'X-Title': 'HackerGPT',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!request.ok) {
+        const response = await request.json();
+        console.error('Error Code:', response.error?.code);
+        console.error('Error Message:', response.error?.message);
+        throw new Error(`OpenRouter error: ${response.error?.message}`);
+      }
+
+      const data = await request.json();
+      return data.choices[0].message.content;
+    } catch (error) {
+      console.error(`Error during translation: ${error}`);
+      return '';
+    }
+  };
+
+  const isEnglish = async (text: string, threshold = 20) => {
+    const combinedEnglishAndCybersecurityWords = new Set([
+      'the',
+      'be',
+      'to',
+      'of',
+      'and',
+      'a',
+      'in',
+      'that',
+      'have',
+      'I',
+      'it',
+      'for',
+      'not',
+      'on',
+      'with',
+      'he',
+      'as',
+      'you',
+      'do',
+      'at',
+      'this',
+      'but',
+      'his',
+      'by',
+      'from',
+      'they',
+      'we',
+      'say',
+      'her',
+      'she',
+      'or',
+      'an',
+      'will',
+      'my',
+      'one',
+      'all',
+      'would',
+      'there',
+      'their',
+      'what',
+      'so',
+      'up',
+      'out',
+      'if',
+      'about',
+      'who',
+      'get',
+      'which',
+      'go',
+      'me',
+      'hack',
+      'security',
+      'vulnerability',
+      'exploit',
+      'code',
+      'system',
+      'network',
+      'attack',
+      'password',
+      'access',
+      'breach',
+      'firewall',
+      'malware',
+      'phishing',
+      'encryption',
+      'SQL',
+      'injection',
+      'XSS',
+      'script',
+      'website',
+      'server',
+      'protocol',
+      'port',
+      'scanner',
+      'tool',
+      'pentest',
+      'payload',
+      'defense',
+      'patch',
+      'update',
+      'compliance',
+      'audit',
+      'brute',
+      'force',
+      'DDoS',
+      'botnet',
+      'ransomware',
+      'Trojan',
+      'spyware',
+      'keylogger',
+      'rootkit',
+      'VPN',
+      'proxy',
+      'SSL',
+      'HTTPS',
+      'session',
+      'cookie',
+      'authentication',
+      'authorization',
+      'certificate',
+      'domain',
+      'DNS',
+      'IP',
+      'address',
+      'log',
+      'monitor',
+      'traffic',
+      'data',
+      'leak',
+      'sensitive',
+      'user',
+      'admin',
+      'credential',
+      'privilege',
+      'escalation',
+      'reverse',
+      'shell',
+      'command',
+      'control',
+    ]);
+
+    const words = text.toLowerCase().split(/\s+/);
+    const relevantWordCount = words.filter((word) =>
+      combinedEnglishAndCybersecurityWords.has(word)
+    ).length;
+    return relevantWordCount / words.length >= threshold / 100;
+  };
 
   if (
     usePinecone &&
     cleanedMessages.length > 0 &&
     cleanedMessages[cleanedMessages.length - 1].role === 'user'
   ) {
-    const lastMessageContent =
+    let lastMessageContent =
       cleanedMessages[cleanedMessages.length - 1].content;
 
-    if (lastMessageContent.length > MIN_MESSAGE_LENGTH) {
-      const pineconeResults = await queryPineconeVectorStore(
-        lastMessageContent
-      );
+    if (
+      lastMessageContent.length > MIN_LAST_MESSAGE_LENGTH &&
+      lastMessageContent.length < MAX_LAST_MESSAGE_LENGTH &&
+      (await isEnglish(lastMessageContent)) === false
+    ) {
+      const translatedContent = await translateToEnglish(lastMessageContent);
+      lastMessageContent = translatedContent;
+    }
 
-      if (pineconeResults !== 'None') {
-        systemMessage.content =
-          `${process.env.SECRET_OPENAI_SYSTEM_PROMPT} ` +
-          `${process.env.SECRET_PINECONE_SYSTEM_PROMPT}` +
-          `Context:\n ${pineconeResults}`;
-      }
+    const pineconeResults = await queryPineconeVectorStore(lastMessageContent);
+
+    if (pineconeResults !== 'None') {
+      systemMessage.content =
+        `${process.env.SECRET_OPENAI_SYSTEM_PROMPT} ` +
+        `${process.env.SECRET_PINECONE_SYSTEM_PROMPT}` +
+        `Context:\n ${pineconeResults}`;
     }
   }
 
@@ -181,14 +377,15 @@ export const HackerGPTStream = async (
       role: msg.role,
       content: msg.content,
     })),
+    max_tokens: maxTokens,
+    n: 1,
     stream: enableStream,
     temperature: modelTemperature,
-    max_tokens: maxTokens,
   };
 
-  const res = await fetch(url, {
+  const res = await fetch(openAIUrl, {
     method: 'POST',
-    headers: headers,
+    headers: openAIHeaders,
     body: JSON.stringify(requestBody),
   });
 
