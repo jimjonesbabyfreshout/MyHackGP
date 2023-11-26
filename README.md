@@ -1,10 +1,10 @@
 # HackerGPT
 
-HackerGPT is your indispensable digital companion in the world of hacking. Crafted with the unique needs of ethical hackers in mind, this AI-powered assistant stands at the forefront of hacking knowledge and assistance. Equipped with an extensive database of hacking techniques, tools, and strategies, HackerGPT is more than just an information resource—it's an active participant in your hacking journey. Whether you're a beginner looking to learn the ropes or a seasoned professional seeking deeper insights, HackerGPT is your ally in navigating the ever-changing landscape of hacking challenges.
+HackerGPT is your indispensable digital companion in the world of hacking. Crafted with the unique needs of bug bounty hunters in mind, this AI-powered assistant stands at the forefront of hacking knowledge and assistance. Equipped with an extensive database of hacking techniques, tools, and strategies, HackerGPT is more than just an information resource—it's an active participant in your hacking journey. Whether you're a beginner looking to learn the ropes or a seasoned professional seeking deeper insights, HackerGPT is your ally in navigating the ever-changing landscape of hacking challenges.
 
 ## How does HackerGPT work?
 
-When you ask a question, it's sent to our server. We verify user authenticity and manage the number of questions you can submit based on your user type (free or plus). Our next step is to search our database for information closely matching your question. If we find a strong match, we incorporate this into the AI's response process. Finally, your question is securely passed to either Google or OpenAI for processing. Importantly, we only send the question and previous ones from the same chat without any personal information. The response you receive varies based on the selected module:
+When you ask a question, it's sent to our server. We verify user authenticity and manage your question quota based on whether you're a free or plus user. We then search our database for information that closely matches your question. For questions not in English, we translate them to find relevant information from our database. If a strong match is found, it's incorporated into the AI's response process. Your question is then securely passed to OpenAI for processing, with no personal information sent. Responses vary based on the module:
 
 - **HackerGPT**: A tuned version of gpt-3.5-turbo-1106 with semantic search on our data.
 - **GPT-4 Turbo**: The latest and greatest from OpenAI, paired with our unique prompt.
@@ -48,7 +48,7 @@ You can get in touch with us through email at [github@hackergpt.chat](mailto:git
 
 ## Contributing Code
 
-Please see [CONTRIBUTING.md](https://github.com/Hacker-GPT/HackerGPT/blob/main/CONTRIBUTING.md) for setup instructions and guidelines for new contributors.
+Interested in contributing to HackerGPT? Please see [CONTRIBUTING.md](https://github.com/Hacker-GPT/HackerGPT/blob/main/CONTRIBUTING.md) for setup instructions and guidelines for new contributors. As an added incentive, top contributors will have the opportunity to become part of the HackerGPT team.
 
 ## Contributing Funds
 
