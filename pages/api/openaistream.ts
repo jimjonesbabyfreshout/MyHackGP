@@ -26,15 +26,19 @@ export const OpenAIStream = async (
   messages: Message[],
   answerMessage: Message
 ) => {
-  const systemPrompt = process.env.SECRET_OPENAI_SYSTEM_PROMPT;
-  const openaiKey = process.env.SECRET_OPENAI_API_KEY;
+  const SYSTEM_PROMPT = process.env.SECRET_OPENAI_SYSTEM_PROMPT;
+  const GOOGLE_SEARCH_SYSTEM_PROMPT =
+    process.env.SECRET_OPENAI_GOOGLE_SEARCH_SYSTEM_PROMPT;
+  const OPENAI_API_KEY = process.env.SECRET_OPENAI_API_KEY;
+
+  const openAIUrl = `https://api.openai.com/v1/chat/completions`;
 
   const commonBody = {
-    model: '',
+    model: `gpt-4-1106-preview`,
     messages: [
       {
         role: 'system',
-        content: systemPrompt,
+        content: SYSTEM_PROMPT,
       },
       ...messages,
     ],
@@ -43,54 +47,31 @@ export const OpenAIStream = async (
     stream: true,
   };
 
-  let url: string;
-  let headers: Record<string, string>;
-
   if (model === 'gpt-3.5-turbo') {
-    url = `https://api.openai.com/v1/chat/completions`;
-    commonBody['model'] = `gpt-4-1106-preview`;
-    (commonBody['messages'] = [
+    commonBody['messages'] = [
       {
         role: 'system',
-        content: process.env.SECRET_OPENAI_GOOGLE_SEARCH_SYSTEM_PROMPT,
+        content: GOOGLE_SEARCH_SYSTEM_PROMPT,
       },
       ...messages,
       answerMessage,
-    ]),
-      (headers = {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${openaiKey}`,
-      });
+    ];
   } else if (model === 'gpt-4') {
-    url = `https://api.openai.com/v1/chat/completions`;
-    commonBody['model'] = `gpt-4-1106-preview`;
-    (commonBody['messages'] = [
-      {
-        role: 'system',
-        content: systemPrompt,
-      },
-      ...messages,
-    ]),
-      (headers = {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${openaiKey}`,
-      });
-  } else {
-    url = `https://api.openai.com/v1/chat/completions`;
-    commonBody['model'] = `gpt-3.5-turbo`;
-    headers = {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${openaiKey}`,
-    };
+    if (answerMessage.content.trim()) {
+      commonBody['messages'].push(answerMessage);
+    }
   }
 
   const requestOptions = {
-    headers,
     method: 'POST',
+    headers: {
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(commonBody),
   };
 
-  const res = await fetch(url, requestOptions);
+  const res = await fetch(openAIUrl, requestOptions);
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
 
