@@ -1,6 +1,8 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/router';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { initFirebaseApp } from '@/utils/server/firebase-client-init';
 import {
   IconX,
   IconCircleCheck,
@@ -21,6 +23,27 @@ const UpgradeToPremiumPopup: React.FC<Props> = ({
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const [token, setToken] = useState<string | null>(null);
+  const [cryptoError, setCryptoError] = useState<string | null>(null);
+
+  const app = initFirebaseApp();
+  const auth = getAuth(app);
+
+  let user = auth.currentUser;
+
+  const getToken = async () => {
+    if (user) {
+      try {
+        setToken(await user.getIdToken(true));
+      } catch (error) {
+        return;
+      }
+    }
+  };
+
+  useEffect(() => {
+    getToken();
+  }, [isOpen]);
 
   const upgradeToPremium = () => {
     if (checkoutUrl) {
@@ -28,8 +51,31 @@ const UpgradeToPremiumPopup: React.FC<Props> = ({
     }
   };
 
-  const payWithCrypto = () => {
-    // fetch the coinbase checkout url here
+  const payWithCrypto = async () => {
+    const coinbaseChargeUrl = process.env.NEXT_PUBLIC_COINBASE_CHARGE_URL;
+
+    if (!coinbaseChargeUrl) {
+      throw new Error('Missing Coinbase Charge Url environment variable');
+    }
+
+    const res = await fetch(coinbaseChargeUrl, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const data = await res.json();
+
+    const { hosted_url } = data;
+
+    if (
+      hosted_url &&
+      hosted_url.startsWith('https://commerce.coinbase.com/pay')
+    ) {
+      window.open(hosted_url, '_blank');
+    } else {
+      setCryptoError('Error creating payment link');
+    }
   };
 
   return (
@@ -145,6 +191,20 @@ const UpgradeToPremiumPopup: React.FC<Props> = ({
                             />
                             Pay with Crypto
                           </button>
+                        </div>
+                        {cryptoError && (
+                          <div className="mb-2 text-red-500">{cryptoError}</div>
+                        )}
+                        <div className="mb-5 flex items-center">
+                          <div className="text-container text-sm">
+                            <p>
+                              <span className="font-bold">
+                                Note for crypto payment:
+                              </span>{' '}
+                              It can take several minutes for the payment to
+                              complete. Once it went through refresh the page.
+                            </p>
+                          </div>
                         </div>
                         <div className="mb-2 flex items-center">
                           <div className="icon-container mr-2">
