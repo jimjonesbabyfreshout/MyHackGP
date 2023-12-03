@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/router';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { initFirebaseApp } from '@/utils/server/firebase-client-init';
+import { getCryptoPaymentStatus } from '@/utils/app/crypto';
 import {
   IconX,
   IconCircleCheck,
@@ -25,6 +26,7 @@ const UpgradeToPremiumPopup: React.FC<Props> = ({
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
   const [cryptoError, setCryptoError] = useState<string | null>(null);
+  const [cryptoStatus, setCryptoStatus] = useState<string | null>(null);
 
   const app = initFirebaseApp();
   const auth = getAuth(app);
@@ -41,8 +43,17 @@ const UpgradeToPremiumPopup: React.FC<Props> = ({
     }
   };
 
+  const getStatus = async () => {
+    if (token) {
+      const status = await getCryptoPaymentStatus(token);
+      console.log(status)
+      setCryptoStatus(status);
+    }
+  };
+
   useEffect(() => {
     getToken();
+    getStatus();
   }, [isOpen]);
 
   const upgradeToPremium = () => {
@@ -101,7 +112,7 @@ const UpgradeToPremiumPopup: React.FC<Props> = ({
                       <IconX color={'gray'} size={22} strokeWidth={2} />
                     </div>
                     <div className="flex items-center justify-between text-white">
-                      <div className="text-md pb-4 font-bold">Your Plan</div>
+                      <div className="text-md pb-4 font-bold">Your Plan {cryptoStatus && ': ' + cryptoStatus}</div>
                     </div>
 
                     {/* Container for both plans */}
