@@ -47,7 +47,7 @@ const UpgradeToPremiumPopup: React.FC<Props> = ({
   const getStatus = async () => {
     if (token) {
       const status = await getCryptoPaymentStatus(token);
-      console.log(status)
+      console.log(status);
       setCryptoStatus(status);
     }
   };
@@ -68,7 +68,7 @@ const UpgradeToPremiumPopup: React.FC<Props> = ({
     if (!token) {
       return;
     }
-    
+
     const coinbaseChargeUrl = process.env.NEXT_PUBLIC_COINBASE_CHARGE_URL;
 
     if (!coinbaseChargeUrl) {
@@ -122,7 +122,9 @@ const UpgradeToPremiumPopup: React.FC<Props> = ({
                       <IconX color={'gray'} size={22} strokeWidth={2} />
                     </div>
                     <div className="flex items-center justify-between text-white">
-                      <div className="text-md pb-4 font-bold">Your Plan {cryptoStatus && ': ' + cryptoStatus}</div>
+                      <div className="text-md pb-4 font-bold">
+                        Your Plan {cryptoStatus && ': ' + cryptoStatus}
+                      </div>
                     </div>
 
                     {/* Container for both plans */}
