@@ -27,6 +27,7 @@ const UpgradeToPremiumPopup: React.FC<Props> = ({
   const [token, setToken] = useState<string | null>(null);
   const [cryptoError, setCryptoError] = useState<string | null>(null);
   const [cryptoStatus, setCryptoStatus] = useState<string | null>(null);
+  const [cryptoCharge, setCryptoCharge] = useState<string | null>(null);
 
   const app = initFirebaseApp();
   const auth = getAuth(app);
@@ -54,6 +55,7 @@ const UpgradeToPremiumPopup: React.FC<Props> = ({
   useEffect(() => {
     getToken();
     getStatus();
+    fetchCryptoCharge();
   }, [isOpen]);
 
   const upgradeToPremium = () => {
@@ -62,7 +64,11 @@ const UpgradeToPremiumPopup: React.FC<Props> = ({
     }
   };
 
-  const payWithCrypto = async () => {
+  const fetchCryptoCharge = async () => {
+    if (!token) {
+      return;
+    }
+    
     const coinbaseChargeUrl = process.env.NEXT_PUBLIC_COINBASE_CHARGE_URL;
 
     if (!coinbaseChargeUrl) {
@@ -79,11 +85,15 @@ const UpgradeToPremiumPopup: React.FC<Props> = ({
 
     const { hosted_url } = data;
 
+    setCryptoCharge(hosted_url);
+  };
+
+  const payWithCrypto = () => {
     if (
-      hosted_url &&
-      hosted_url.startsWith('https://commerce.coinbase.com/pay')
+      cryptoCharge &&
+      cryptoCharge.startsWith('https://commerce.coinbase.com/pay')
     ) {
-      window.open(hosted_url, '_blank');
+      window.open(cryptoCharge, '_blank');
     } else {
       setCryptoError('Error creating payment link');
     }
