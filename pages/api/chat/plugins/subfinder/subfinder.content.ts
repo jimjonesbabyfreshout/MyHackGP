@@ -144,6 +144,10 @@ const parseCommandLine = (input: string) => {
     }
   }
 
+  if (!params.domain.length) {
+    params.error = "🚨 Error: -d parameter is required.";
+  }
+
   return params;
 };
   
