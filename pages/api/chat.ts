@@ -171,15 +171,22 @@ const handler = async (req: Request): Promise<Response> => {
     encoding.free();
 
     if (userStatusOk && isSubfinderCommand(lastMessage.content)) {
-      return await handleSubfinderRequest(
-        lastMessage,
-        corsHeaders,
-        enableSubfinderFeature,
-        OpenAIStream,
-        model,
-        messagesToSend,
-        answerMessage
-      );
+      if (model === ModelType.GPT4) {
+        return await handleSubfinderRequest(
+          lastMessage,
+          corsHeaders,
+          enableSubfinderFeature,
+          OpenAIStream,
+          model,
+          messagesToSend,
+          answerMessage
+        );
+      } else {
+        return new Response(
+          'You can access this feature only with GPT-4.',
+          { status: 200, headers: corsHeaders }
+        );
+      }
     } else {
       if (userStatusOk) {
         let streamResult;
