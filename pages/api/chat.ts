@@ -176,7 +176,7 @@ const handler = async (req: Request): Promise<Response> => {
     encoding.free();
 
     if (userStatusOk) {
-      if (userStatusOk && isSubfinderCommand(lastMessage.content)) {
+      if (isSubfinderCommand(lastMessage.content)) {
         if (model === ModelType.GPT4) {
           return await handleSubfinderRequest(
             lastMessage,
