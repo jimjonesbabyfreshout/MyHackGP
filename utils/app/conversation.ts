@@ -22,9 +22,46 @@ export const updateConversation = (
 };
 
 export const saveConversation = (conversation: Conversation) => {
-  localStorage.setItem('selectedConversation', JSON.stringify(conversation));
+  try {
+    localStorage.setItem('selectedConversation', JSON.stringify(conversation));
+  } catch (e) {
+    if (
+      e instanceof DOMException &&
+      (e.code === 22 || e.name === 'QuotaExceededError')
+    ) {
+      // Quota exceeded error indicates that localStorage is full
+      console.error(
+        'LocalStorage quota exceeded. Clearing selected conversation...'
+      );
+      // Remove only the selected conversation from localStorage
+      localStorage.removeItem('selectedConversation');
+      // You may also want to inform the user or handle the situation differently
+    } else {
+      // If it's not a quota error, rethrow it
+      throw e;
+    }
+  }
 };
-
 export const saveConversations = (conversations: Conversation[]) => {
-  localStorage.setItem('conversationHistory', JSON.stringify(conversations));
+  try {
+    // Try to save conversations to localStorage
+    localStorage.setItem('conversationHistory', JSON.stringify(conversations));
+  } catch (e) {
+    if (
+      e instanceof DOMException &&
+      (e.code === 22 || e.name === 'QuotaExceededError')
+    ) {
+      // Quota exceeded error indicates that localStorage is full
+      console.error(
+        'LocalStorage quota exceeded. Clearing conversation history...'
+      );
+      // Remove only the conversations from localStorage
+      localStorage.removeItem('conversationHistory');
+      // Consider implementing a strategy to keep the most recent or important conversations
+      // Optionally, try to save again or handle the situation differently
+    } else {
+      // If it's not a quota error, rethrow it
+      throw e;
+    }
+  }
 };

@@ -6,8 +6,6 @@ export enum Role {
 }
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { domain, match, filter, includeSources } = req.query;
-
   const requestHost = req.headers.host;
 
   if (
@@ -22,33 +20,67 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       .json({ message: 'Forbidden: Access is denied from this domain.' });
     return;
   }
+  let gauOutput = '';
 
   const authHeader = req.headers.authorization;
-  const expectedAuthValue = process.env.SECRET_AUTH_SUBFINDER;
+  const expectedAuthValue = process.env.SECRET_AUTH_PLUGINS;
 
   if (!authHeader || authHeader !== expectedAuthValue) {
     res.status(401).json({ message: 'Unauthorized' });
     return;
   }
 
-  let subfinderOutput = '';
+  const {
+    target,
+    blacklist,
+    fc,
+    fromDate,
+    ft,
+    fp,
+    mc,
+    mt,
+    providers,
+    includeSubdomains,
+    toDate,
+  } = req.query;
 
-  let command = `subfinder -d ${domain} -t 30 -max-time 1 -json -silent`;
+  let command = `gau --timeout 60 --json`;
 
-  if (match) {
-    command += ` -m ${Array.isArray(match) ? match.join(',') : match}`;
+  if (target) {
+    command += ` ${target}`;
   }
-  if (filter) {
-    command += ` -f ${Array.isArray(filter) ? filter.join(',') : filter}`;
+  if (blacklist) {
+    command += ` --blacklist ${blacklist}`;
   }
-  if (includeSources === 'true') {
-    command += ' -cs';
+  if (fc) {
+    command += ` --fc ${fc}`;
+  }
+  if (fromDate) {
+    command += ` --from ${fromDate}`;
+  }
+  if (ft) {
+    command += ` --ft ${ft}`;
+  }
+  if (fp === 'true') {
+    command += ` --fp`;
+  }
+  if (mc) {
+    command += ` --mc ${mc}`;
+  }
+  if (mt) {
+    command += ` --mt ${mt}`;
+  }
+  if (providers) {
+    command += ` --providers ${providers}`;
+  }
+  if (toDate) {
+    command += ` --to ${toDate}`;
   }
 
-  const MAX_COMMAND_LENGTH = 1000;
-  if (command.length > MAX_COMMAND_LENGTH) {
-    res.status(400).json({ message: 'Command too long' });
-    return;
+  console.log('Executing gau command:', command);
+
+  if (command.length > 2000) {
+    return res.status(400).json({ message: 'Command too long' });
   }
 
   res.setHeader('Content-Type', 'text/event-stream');
@@ -56,9 +88,9 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders();
 
-  sendSSEMessage(res, 'Starting subfinder process...');
+  sendSSEMessage(res, 'Starting gau process...');
 
-  const subfinderProcess = exec(command);
+  const gauProcess = exec(command, { maxBuffer: 1024 * 1024 * 10 });
   let isTimeout = false;
 
   const progressInterval = setInterval(() => {
@@ -67,32 +99,30 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const timeout = setTimeout(() => {
     isTimeout = true;
-    subfinderProcess.kill('SIGTERM');
-    sendSSEMessage(res, 'Subfinder process timed out.');
+    gauProcess.kill('SIGTERM');
+    sendSSEMessage(res, 'Gau process timed out.');
     clearInterval(progressInterval);
     res.end();
-  }, 35000);
+  }, 60000);
 
-  subfinderProcess.stdout?.on('data', (data) => {
-    subfinderOutput += data;
+  gauProcess.stdout?.on('data', (data) => {
+    sendSSEMessage(res, data.toString());
   });
 
-  subfinderProcess.stderr?.on('data', (data) => {
-    console.error(data);
+  gauProcess.stderr?.on('data', (data) => {
+    sendSSEMessage(res, `ERROR: ${data.toString()}`);
   });
 
-  subfinderProcess.on('close', (code) => {
+  gauProcess.on('close', (code) => {
     if (!isTimeout) {
       clearTimeout(timeout);
       clearInterval(progressInterval);
-      const domains = processSubfinderOutput(subfinderOutput);
-      sendSSEMessage(res, 'Subfinder process completed.');
-      sendSSEMessage(res, domains);
+      sendSSEMessage(res, 'Gau process completed.');
       res.end();
     }
   });
 
-  subfinderProcess.on('error', (error) => {
+  gauProcess.on('error', (error) => {
     if (!isTimeout) {
       clearTimeout(timeout);
       clearInterval(progressInterval);
@@ -105,8 +135,4 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 
 function sendSSEMessage(res: NextApiResponse, data: string) {
   res.write(`data: ${data}\n\n`);
-}
-
-function processSubfinderOutput(output: string): string {
-  return output.trim();
 }

@@ -17,6 +17,10 @@ import {
   isSubfinderCommand,
   handleSubfinderRequest,
 } from '@/pages/api/chat/plugins/subfinder/subfinder.content';
+import {
+  isGauCommand,
+  handleGauRequest,
+} from '@/pages/api/chat/plugins/gau/gau.content';
 
 export const config = {
   runtime: 'edge',
@@ -50,8 +54,9 @@ const getTokenLimit = (model: string) => {
 const handler = async (req: Request): Promise<Response> => {
   try {
     const useWebBrowsingPlugin = process.env.USE_WEB_BROWSING_PLUGIN === 'TRUE';
-    const enableSubfinderFeature =
+    const enableSubfinderPlugin =
       process.env.ENABLE_SUBFINDER_FEATURE === 'TRUE';
+    const enableGauPlugin = process.env.ENABLE_GAU_FEATURE === 'TRUE';
 
     const authToken = req.headers.get('Authorization');
     let { messages, model, max_tokens, temperature, stream } =
@@ -170,18 +175,42 @@ const handler = async (req: Request): Promise<Response> => {
 
     encoding.free();
 
-    if (userStatusOk && isSubfinderCommand(lastMessage.content)) {
-      return await handleSubfinderRequest(
-        lastMessage,
-        corsHeaders,
-        enableSubfinderFeature,
-        OpenAIStream,
-        model,
-        messagesToSend,
-        answerMessage
-      );
-    } else {
-      if (userStatusOk) {
+    if (userStatusOk) {
+      if (userStatusOk && isSubfinderCommand(lastMessage.content)) {
+        if (model === ModelType.GPT4) {
+          return await handleSubfinderRequest(
+            lastMessage,
+            corsHeaders,
+            enableSubfinderPlugin,
+            OpenAIStream,
+            model,
+            messagesToSend,
+            answerMessage
+          );
+        } else {
+          return new Response(
+            'You can access [Subfinder](https://github.com/projectdiscovery/subfinder) only with GPT-4.',
+            { status: 200, headers: corsHeaders }
+          );
+        }
+      } else if (isGauCommand(lastMessage.content)) {
+        if (model === ModelType.GPT4) {
+          return await handleGauRequest(
+            lastMessage,
+            corsHeaders,
+            enableGauPlugin,
+            OpenAIStream,
+            model,
+            messagesToSend,
+            answerMessage
+          );
+        } else {
+          return new Response(
+            'You can access [Gau](https://github.com/lc/gau) only with GPT-4.',
+            { status: 200, headers: corsHeaders }
+          );
+        }
+      } else {
         let streamResult;
         if (model === ModelType.GPT35TurboInstruct) {
           streamResult = await HackerGPTStream(
@@ -201,12 +230,12 @@ const handler = async (req: Request): Promise<Response> => {
         return new Response(streamResult, {
           headers: corsHeaders,
         });
-      } else {
-        return new Response('An unexpected error occurred', {
-          status: 500,
-          headers: corsHeaders,
-        });
       }
+    } else {
+      return new Response('An unexpected error occurred', {
+        status: 500,
+        headers: corsHeaders,
+      });
     }
   } catch (error) {
     console.error('An error occurred:', error);
