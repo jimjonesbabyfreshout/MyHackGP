@@ -324,7 +324,7 @@ export async function handleGauRequest(
           '"\n\n' +
           '**Scan Date and Time**:' +
           ` ${formattedDateTime} (${timezone}) \n\n` +
-          '### Identified Subdomains:\n' +
+          '### Identified Urls:\n' +
           '```\n' +
           urlsFormatted.trim() +
           '\n' +
