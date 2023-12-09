@@ -305,10 +305,10 @@ const createAnswerPromptSubfinder = (
   }
 
   const date = new Date();
-  const timezoneOffset = -date.getTimezoneOffset() / 60;
-  const timezone = `UTC${timezoneOffset >= 0 ? '+' : ''}${timezoneOffset}`;
+  const timezone = 'UTC-5';
   const formattedDateTime = date.toLocaleString('en-US', {
-    timeZoneName: 'short',
+      timeZone: 'Etc/GMT+5',
+      timeZoneName: 'short'
   });
 
   const messageContent = endent`
@@ -325,7 +325,7 @@ const createAnswerPromptSubfinder = (
 
   ## [Subfinder](https://github.com/projectdiscovery/subfinder) Scan Results
   **Target**: "${domain}"
-  
+
   **Scan Date and Time**: ${formattedDateTime} (${timezone})
 
   ### Identified Subdomains:

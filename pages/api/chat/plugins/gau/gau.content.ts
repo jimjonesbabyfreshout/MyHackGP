@@ -310,15 +310,13 @@ export async function handleGauRequest(
         let urlsFormatted = processGauData(gauData);
 
         const date = new Date();
-        const timezoneOffset = -date.getTimezoneOffset() / 60;
-        const timezone = `UTC${
-          timezoneOffset >= 0 ? '+' : ''
-        }${timezoneOffset}`;
+        const timezone = 'UTC-5';
         const formattedDateTime = date.toLocaleString('en-US', {
-          timeZoneName: 'short',
+            timeZone: 'Etc/GMT+5',
+            timeZoneName: 'short'
         });
         const responseString =
-          '## Gau Scan Results\n' +
+          '## [Gau](https://github.com/lc/gau) Scan Results\n' +
           '**Target**: "' +
           params.target +
           '"\n\n' +
