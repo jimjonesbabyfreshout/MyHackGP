@@ -25,7 +25,8 @@ const displayHelpGuide = () => {
 
     OUTPUT:
        -oJ, -json              write output in JSONL(ines) format
-       -cs, -collect-sources   include all sources in the output`;
+       -cs, -collect-sources   include all sources in the output
+       -v, -verbose            use AI to provide key observations, insights, recommended Actions about identified subdomains`;
 };
 
 interface SubfinderParams {
@@ -34,6 +35,7 @@ interface SubfinderParams {
   filter: string[];
   includeSources: boolean;
   outputJson: boolean;
+  outputVerbose: boolean;
   error: string | null;
 }
 
@@ -56,6 +58,7 @@ const parseCommandLine = (input: string) => {
     filter: [],
     includeSources: false,
     outputJson: false,
+    outputVerbose: false,
     error: null,
   };
 
@@ -106,12 +109,16 @@ const parseCommandLine = (input: string) => {
         }
         break;
       case '-cs':
-      case '--collect-sources':
+      case '-collect-sources':
         params.includeSources = true;
         break;
       case '-oJ':
       case '-json':
         params.outputJson = true;
+        break;
+      case '-v':
+      case '-verbose':
+        params.outputVerbose = true;
         break;
     }
   }
@@ -159,10 +166,17 @@ export async function handleSubfinderRequest(
   }
 
   let subfinderUrl = `${process.env.SECRET_SUBFINDER_FUNCTION_URL}/api/chat/plugins/subfinder?`;
+
   subfinderUrl += params.domain.map((d) => `domain=${d}`).join('&');
-  subfinderUrl += params.match.map((m) => `&match=${m}`).join('');
-  subfinderUrl += params.filter.map((f) => `&filter=${f}`).join('');
-  subfinderUrl += params.includeSources ? '&includeSources=false' : '';
+  if (params.match && params.match.length > 0) {
+    subfinderUrl += '&' + params.match.map((m) => `match=${m}`).join('&');
+  }
+  if (params.filter && params.filter.length > 0) {
+    subfinderUrl += '&' + params.filter.map((f) => `filter=${f}`).join('&');
+  }
+  if (params.includeSources) {
+    subfinderUrl += `&includeSources=true`;
+  }
 
   const headers = new Headers(corsHeaders);
   headers.set('Content-Type', 'text/event-stream');
@@ -190,7 +204,7 @@ export async function handleSubfinderRequest(
           method: 'GET',
           headers: {
             Authorization: `${process.env.SECRET_AUTH_PLUGINS}`,
-            Header: 'example.google.com',
+            Header: 'hackergpt.co',
           },
         });
 
@@ -199,9 +213,9 @@ export async function handleSubfinderRequest(
         subfinderData = processSubfinderData(subfinderData);
 
         if (subfinderData.length === 0) {
-          const noDataMessage = `🔍 Didn't find any subdomains for ${params.domain.join(
+          const noDataMessage = `🔍 Didn't find any subdomains for "${params.domain.join(
             ', '
-          )}.`;
+          )}"`;
           clearInterval(intervalId);
           sendMessage(noDataMessage, true);
           controller.close();
@@ -211,9 +225,15 @@ export async function handleSubfinderRequest(
           });
         }
 
+        clearInterval(intervalId);
+        sendMessage('✅ Scan done! Now processing the results...', true);
+
         if (params.outputJson) {
-          clearInterval(intervalId);
-          sendMessage(subfinderData, true);
+          const responseString = createResponseString(
+            params.domain,
+            subfinderData
+          );
+          sendMessage(responseString, true);
           controller.close();
           return new Response(subfinderData, {
             status: 200,
@@ -221,37 +241,56 @@ export async function handleSubfinderRequest(
           });
         }
 
-        clearInterval(intervalId);
-        sendMessage('✅ Scan done! Now processing the results...', true);
-
-        const answerPrompt = createAnswerPromptSubfinder(
-          params.domain.join(', '),
-          params.includeSources,
-          subfinderData
-        );
-        answerMessage.content = answerPrompt;
-
-        const openAIResponseStream = await OpenAIStream(
-          model,
-          messagesToSend,
-          answerMessage
-        );
-        const reader = openAIResponseStream.getReader();
-
-        // @ts-expect-error
-        reader.read().then(function processText({ done, value }) {
-          if (done) {
-            controller.close();
-            return;
-          }
-
-          const decodedValue = new TextDecoder().decode(value, {
-            stream: true,
+        if (params.includeSources) {
+          const responseString = createResponseString(
+            params.domain,
+            extractHostsAndSourcesFromData(subfinderData)
+          );
+          sendMessage(responseString, true);
+          controller.close();
+          return new Response(subfinderData, {
+            status: 200,
+            headers: corsHeaders,
           });
-          sendMessage(decodedValue);
+        }
 
-          return reader.read().then(processText);
-        });
+        const responseString = createResponseString(
+          params.domain,
+          extractHostsFromSubfinderData(subfinderData)
+        );
+        sendMessage(responseString, true);
+
+        if (params.outputVerbose) {
+          const answerPrompt = createAnswerPromptSubfinder(
+            params.domain.join(', '),
+            extractHostsFromSubfinderData(subfinderData)
+          );
+          answerMessage.content = answerPrompt;
+
+          const openAIResponseStream = await OpenAIStream(
+            model,
+            messagesToSend,
+            answerMessage
+          );
+          const reader = openAIResponseStream.getReader();
+
+          // @ts-expect-error
+          reader.read().then(function processText({ done, value }) {
+            if (done) {
+              controller.close();
+              return;
+            }
+
+            const decodedValue = new TextDecoder().decode(value, {
+              stream: true,
+            });
+            sendMessage(decodedValue);
+
+            return reader.read().then(processText);
+          });
+        } else {
+          controller.close();
+        }
       } catch (error) {
         clearInterval(intervalId);
         let errorMessage =
@@ -279,31 +318,45 @@ const processSubfinderData = (data: string) => {
     .join('');
 };
 
-const createAnswerPromptSubfinder = (
-  domain: string,
-  includeSources: boolean,
+const extractHostsFromSubfinderData = (data: string) => {
+  try {
+    const validJsonString = '[' + data.replace(/}{/g, '},{') + ']';
+
+    const jsonData = JSON.parse(validJsonString);
+
+    return jsonData
+      .map((item: { host: any }) => item.host)
+      .filter((host: undefined) => host !== undefined)
+      .join('\n');
+  } catch (error) {
+    console.error('Error processing data:', error);
+    return '';
+  }
+};
+
+const extractHostsAndSourcesFromData = (data: string) => {
+  try {
+    const validJsonString = '[' + data.replace(/}{/g, '},{') + ']';
+
+    const jsonData = JSON.parse(validJsonString);
+
+    return jsonData
+      .map((item: { host: any; sources: any[] }) => {
+        const host = item.host;
+        const sources = item.sources ? `[${item.sources.join(', ')}]` : '[]';
+        return `${host},${sources}`;
+      })
+      .join('\n');
+  } catch (error) {
+    console.error('Error processing data:', error);
+    return '';
+  }
+};
+
+const createResponseString = (
+  domain: string | string[],
   subfinderData: string
 ) => {
-  let firstStepInstruction =
-    '1. **Identify and List Subdomains**: Present a clear list of all identified subdomains ';
-
-  if (includeSources) {
-    firstStepInstruction +=
-      'with sources like this for example "hackergpt.co,[digitorus,crtsh]" ';
-  }
-
-  firstStepInstruction += 'in code block. Just each domain on new line.';
-
-  let additionalNote = '';
-  let instructionsForAdditionalNote = '';
-  if (subfinderData.length > 5000) {
-    subfinderData = subfinderData.slice(0, 5000);
-    additionalNote =
-      'Note: The list of subdomains has been truncated due to length. To view all subdomains, consider using the "-json" parameter when using subfinder.';
-    instructionsForAdditionalNote =
-      '1.1 **Incorporate the Additional Note**: If the list of subdomains is truncated due to its length, include the additional note provided to inform the user.';
-  }
-
   const date = new Date();
   const timezone = 'UTC-5';
   const formattedDateTime = date.toLocaleString('en-US', {
@@ -311,35 +364,50 @@ const createAnswerPromptSubfinder = (
     timeZoneName: 'short',
   });
 
+  return (
+    '## [Subfinder](https://github.com/projectdiscovery/subfinder) Scan Results\n' +
+    '**Target**: "' +
+    domain +
+    '"\n\n' +
+    '**Scan Date and Time**: ' +
+    `${formattedDateTime} (${timezone}) \n\n` +
+    '### Identified Domains:\n' +
+    '```\n' +
+    subfinderData +
+    '\n' +
+    '```\n'
+  );
+};
+
+const createAnswerPromptSubfinder = (domain: string, subfinderData: string) => {
+  if (subfinderData.length > 10000) {
+    subfinderData = subfinderData.slice(0, 10000);
+  }
+
+  const structuredData = `
+  Domain: ${domain}
+  Identified Subdomains: 
+  ${subfinderData}
+  `;
+
   const messageContent = endent`
-  Generate a comprehensive report for the Subfinder scan conducted on the domain "${domain}". The report should be clear, concise, and user-friendly, highlighting key findings and insights for easy interpretation. Assume that the Subfinder tool has already completed the scan and provided detailed data on subdomains. Your task is to analyze this data and present it in a structured format.
+  Generate a comprehensive report for the Subfinder scan conducted on the domain "${domain}". The report should highlight key findings and insights for easy interpretation. Assume that the Subfinder tool has already completed the scan and provided detailed data on subdomains.
   
   Instructions:
-  ${firstStepInstruction}
-  ${instructionsForAdditionalNote}
-  2. **Highlight Key Observations**: Analyze the subdomains for any notable characteristics or security implications. Focus on aspects like unusual subdomain patterns, potential security risks, or subdomains that may need immediate attention.
-  3. **Provide Insightful Analysis**: Offer insights based on the subdomains' structure, naming conventions, and other relevant details derived from the scan.
-  4. **Recommend Next Steps**: Outline strategic methods for probing identified subdomains for weaknesses and suggest tools or techniques for deeper assessment.
-
+  1. **Highlight Key Observations**: Analyze the subdomains for any notable characteristics or security implications. Focus on aspects like unusual subdomain patterns, potential security risks, or subdomains that may need immediate attention.
+  2. **Provide Insightful Analysis**: Offer insights based on the subdomains' structure, naming conventions, and other relevant details derived from the scan.
+  3. **Recommend Next Steps**: Outline strategic methods for probing identified subdomains for weaknesses and suggest tools or techniques for deeper assessment.
+  
   Report Template:
 
-  ## [Subfinder](https://github.com/projectdiscovery/subfinder) Scan Results
-  **Target**: "${domain}"
-
-  **Scan Date and Time**: ${formattedDateTime} (${timezone})
-
-  ### Identified Subdomains:
-  \`\`\`
-  [Extract and list only the subdomain names from ${subfinderData} (Required)]
-  \`\`\`
-  ${additionalNote}
-
   ### Key Observations and Insights
-  - [Insights and notable observations about the subdomains (Not Required)]
+  - [Insights and notable observations about the subdomains]
 
   ### Recommended Actions
-  - [Propose methods and tools for investigating the identified subdomains further (Not Required)]
-  `;
+  - [Propose methods and tools for investigating the identified subdomains further]
+
+  --- Subfinder Data for Analysis ---
+  ${structuredData}`;
 
   return messageContent;
 };
