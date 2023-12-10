@@ -312,8 +312,8 @@ export async function handleGauRequest(
         const date = new Date();
         const timezone = 'UTC-5';
         const formattedDateTime = date.toLocaleString('en-US', {
-            timeZone: 'Etc/GMT+5',
-            timeZoneName: 'short'
+          timeZone: 'Etc/GMT+5',
+          timeZoneName: 'short',
         });
         const responseString =
           '## [Gau](https://github.com/lc/gau) Scan Results\n' +

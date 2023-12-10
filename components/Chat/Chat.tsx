@@ -422,7 +422,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                 <div className="z-10">
                   {models.length > 0 && <ModelSelect />}
                 </div>
-                <div className="absolute inset-x-0 top-28 ml-auto mr-auto mb-10 flex flex flex flex-grow items-center items-center justify-center justify-center gap-2 text-center text-4xl font-semibold text-gray-200 dark:text-gray-600 sm:mb-16">
+                <div className="absolute inset-x-0 top-28 mb-10 ml-auto mr-auto flex flex flex flex-grow items-center items-center justify-center justify-center gap-2 text-center text-4xl font-semibold text-gray-200 dark:text-gray-600 sm:mb-16">
                   {models.length === 0 ? (
                     <div>
                       <Spinner size="18px" className="mx-auto" />
@@ -431,7 +431,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                     <>
                       {'HackerGPT'}
                       {isPremium && (
-                        <span className="rounded-md bg-yellow-200 py-0.5 px-1.5 text-xs uppercase text-yellow-900 md:text-sm">
+                        <span className="rounded-md bg-yellow-200 px-1.5 py-0.5 text-xs uppercase text-yellow-900 md:text-sm">
                           Plus
                         </span>
                       )}

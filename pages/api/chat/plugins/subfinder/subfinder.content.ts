@@ -117,7 +117,7 @@ const parseCommandLine = (input: string) => {
   }
 
   if (!params.domain.length) {
-    params.error = "🚨 Error: -d parameter is required.";
+    params.error = '🚨 Error: -d parameter is required.';
   }
 
   return params;
@@ -307,8 +307,8 @@ const createAnswerPromptSubfinder = (
   const date = new Date();
   const timezone = 'UTC-5';
   const formattedDateTime = date.toLocaleString('en-US', {
-      timeZone: 'Etc/GMT+5',
-      timeZoneName: 'short'
+    timeZone: 'Etc/GMT+5',
+    timeZoneName: 'short',
   });
 
   const messageContent = endent`

@@ -96,14 +96,14 @@ const LoginSignupPopup: React.FC<Parameters> = ({ isOpen, onClose }) => {
       <div className="absolute inset-0 bg-black opacity-30"></div>
       <div className="relative z-50 m-auto w-full max-w-md overflow-hidden rounded-lg border border-gray-300 bg-white text-white dark:bg-hgpt-dark-gray">
         <div
-          className="absolute top-2 right-2 flex h-10 w-10 cursor-pointer items-center justify-center"
+          className="absolute right-2 top-2 flex h-10 w-10 cursor-pointer items-center justify-center"
           onClick={onClose}
         >
           <IconX color="gray" size={22} strokeWidth={2} />
         </div>
-        <div className="p-6 pt-12 pb-2">
-          <div className="flex w-full flex-col items-center justify-center space-y-4 p-8 pt-2 pb-2">
-            <h1 className="pt-2 pb-4 text-3xl font-bold text-black dark:text-white">
+        <div className="p-6 pb-2 pt-12">
+          <div className="flex w-full flex-col items-center justify-center space-y-4 p-8 pb-2 pt-2">
+            <h1 className="pb-4 pt-2 text-3xl font-bold text-black dark:text-white">
               {isCreatingAccount ? 'Create Your Account' : 'Welcome Back'}
             </h1>
             <input
@@ -187,7 +187,7 @@ const LoginSignupPopup: React.FC<Parameters> = ({ isOpen, onClose }) => {
             </div>
           )}
         </div>
-        <div className="pt-2 pb-2 text-center text-xs text-black dark:text-white">
+        <div className="pb-2 pt-2 text-center text-xs text-black dark:text-white">
           By using HackerGPT, you agree to our{' '}
           <a
             href="/terms-and-conditions"
@@ -198,7 +198,7 @@ const LoginSignupPopup: React.FC<Parameters> = ({ isOpen, onClose }) => {
           </a>
           .
         </div>
-        <div className="flex justify-center p-6 pt-6 pb-5">
+        <div className="flex justify-center p-6 pb-5 pt-6">
           {isCreatingAccount ? (
             <button
               onClick={() => {

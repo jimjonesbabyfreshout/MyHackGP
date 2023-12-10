@@ -13,7 +13,7 @@ export const Navbar: FC<Props> = ({
   onNewConversation,
 }) => {
   return (
-    <nav className="flex w-full items-center justify-between bg-hgpt-dark-gray py-3 px-4">
+    <nav className="flex w-full items-center justify-between bg-hgpt-dark-gray px-4 py-3">
       <div className="mr-4"></div>
 
       <div className="flex-1 truncate text-center text-base font-normal">

@@ -359,7 +359,7 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
   return (
     <div className="inset-negative-5 fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className="fixed inset-0 z-10 overflow-hidden">
-        <div className="flex min-h-screen items-center justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div className="flex min-h-screen items-center justify-center px-4 pb-20 pt-4 text-center sm:block sm:p-0">
           <div
             className="hidden sm:inline-block sm:h-screen sm:align-middle"
             aria-hidden="true"
@@ -367,7 +367,7 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
           {/* Modal dialog container */}
           <div
             ref={modalRef}
-            className="inline-block max-h-[500px] max-h-[80%] w-11/12 transform overflow-y-auto rounded-lg border border-gray-300 bg-white pt-5 pb-4 text-left align-bottom shadow-xl transition-all dark:border-neutral-400 dark:bg-hgpt-dark-gray sm:my-8 sm:max-h-[600px] sm:w-full sm:max-w-3xl sm:p-2 sm:align-middle"
+            className="inline-block max-h-[500px] max-h-[80%] w-11/12 transform overflow-y-auto rounded-lg border border-gray-300 bg-white pb-4 pt-5 text-left align-bottom shadow-xl transition-all dark:border-neutral-400 dark:bg-hgpt-dark-gray sm:my-8 sm:max-h-[600px] sm:w-full sm:max-w-3xl sm:p-2 sm:align-middle"
             role="dialog"
           >
             {/* Close button */}
@@ -399,7 +399,7 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
                         <button
                           key={tab.name}
                           onClick={() => setSelectedTab(tab.name)}
-                          className={`mb-2 mr-2 inline-flex items-center justify-center rounded-md py-2 px-4 text-sm font-medium sm:mb-2 sm:mr-0 sm:justify-start ${
+                          className={`mb-2 mr-2 inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium sm:mb-2 sm:mr-0 sm:justify-start ${
                             selectedTab === tab.name
                               ? 'bg-hgpt-hover-white text-black dark:bg-hgpt-chat-gray dark:text-neutral-200'
                               : 'text-black hover:bg-gray-100 dark:text-neutral-200 dark:hover:bg-gray-700'
@@ -615,7 +615,7 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
                               </div>
                             )}
                             <button
-                              className="mt-4 w-full rounded bg-blue-500 py-2 px-4 text-white"
+                              className="mt-4 w-full rounded bg-blue-500 px-4 py-2 text-white"
                               onClick={handleCreateNewKey}
                               disabled={
                                 !keyName || isButtonDisabled || isCreatingKey
@@ -641,7 +641,7 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
                               safe. You will not be able to see it again.
                             </p>{' '}
                             <button
-                              className="w-full rounded bg-blue-500 py-2 px-4 text-white"
+                              className="w-full rounded bg-blue-500 px-4 py-2 text-white"
                               onClick={() => {
                                 setShowTokenPopup(false);
                                 setKeyCreated(false);
@@ -679,13 +679,13 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
                         )}
                         <div className="flex justify-end space-x-2">
                           <button
-                            className="rounded bg-gray-300 py-2 px-4 text-black hover:bg-gray-400 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-700"
+                            className="rounded bg-gray-300 px-4 py-2 text-black hover:bg-gray-400 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-700"
                             onClick={() => setShowRevokeModal(false)}
                           >
                             Cancel
                           </button>
                           <button
-                            className="rounded bg-red-600 py-2 px-4 text-white hover:bg-red-700"
+                            className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700"
                             onClick={handleRevokeConfirm}
                             disabled={isRevokeButtonDisabled || isDeletingKey}
                           >

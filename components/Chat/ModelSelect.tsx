@@ -179,7 +179,7 @@ export const ModelSelect = () => {
                           viewBox="0 0 24 24"
                           fill="currentColor"
                           aria-hidden="true"
-                          className="icon-sm group-hover/button:text-brand-purple ml-0.5 -ml-2 !text-gray-500 transition-colors group-hover/options:text-gray-500 sm:ml-0"
+                          className="icon-sm group-hover/button:text-brand-purple -ml-2 ml-0.5 !text-gray-500 transition-colors group-hover/options:text-gray-500 sm:ml-0"
                           width="16"
                           height="16"
                         >
