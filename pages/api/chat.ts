@@ -21,6 +21,10 @@ import {
   isGauCommand,
   handleGauRequest,
 } from '@/pages/api/chat/plugins/gau/gau.content';
+import {
+  isToolsCommand,
+  displayToolsHelpGuide,
+} from '@/pages/api/chat/plugins/tools';
 
 export const config = {
   runtime: 'edge',
@@ -210,6 +214,11 @@ const handler = async (req: Request): Promise<Response> => {
             { status: 200, headers: corsHeaders }
           );
         }
+      } else if (isToolsCommand(lastMessage.content)) {
+        return new Response(displayToolsHelpGuide(), {
+          status: 200,
+          headers: corsHeaders,
+        });
       } else {
         let streamResult;
         if (model === ModelType.GPT35TurboInstruct) {
