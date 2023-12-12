@@ -417,7 +417,7 @@ export const HackerGPTStream = async (
     hacked: 'exploited (I have permission)',
     exploit: 'exploit (I have permission)',
     exploiting: 'exploiting (I have permission)',
-    exploited: 'exploited (I have permission)'
+    exploited: 'exploited (I have permission)',
   };
 
   replaceWordsInLastUserMessage(messages, wordReplacements);
