@@ -46,6 +46,63 @@ const AboutUs = () => {
           </div>
           <div>
             <h3 className="mb-4 text-2xl font-semibold">
+              Is my information safe?
+            </h3>
+            <p className="mb-4 text-lg">
+              Absolutely! We take your privacy seriously:
+            </p>
+            <ul className="ml-8 list-disc space-y-2">
+              <li>Simple email sign-in.</li>
+              <li>Your questions aren&apos;t logged by us.</li>
+              <li>Chats are device-exclusive; we don&apos;t store them.</li>
+              <li>OpenAI doesn&apos;t know who&apos;s asking.</li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="mb-4 text-2xl font-semibold">
+              What Makes HackerGPT Special?
+            </h3>
+            <p className="mb-4 text-lg">
+              HackerGPT isn't just an AI that can answer your hacking questions;
+              it actually can hack with you using popular open-source hacking
+              tools. To see all the tools you can use with HackerGPT, type{' '}
+              <code>/tools</code>. If you want a quick guide on using a specific
+              tool, like Subfinder, just type <code>/subfinder -h</code>.
+            </p>
+            <p className="mb-4 text-lg">
+              Below are some of the notable tools available with HackerGPT:
+            </p>
+            <ul className="ml-8 list-disc space-y-2">
+              <li>
+                <strong>
+                  <a
+                    href="https://github.com/projectdiscovery/subfinder"
+                    className="text-blue-500 hover:text-blue-600 hover:underline"
+                  >
+                    Subfinder
+                  </a>
+                </strong>{' '}
+                is a subdomain discovery tool designed to enumerate and uncover
+                valid subdomains of websites efficiently through passive online
+                sources.
+              </li>
+              <li>
+                <strong>
+                  <a
+                    href="https://github.com/lc/gau"
+                    className="text-blue-500 hover:text-blue-600 hover:underline"
+                  >
+                    Gau
+                  </a>
+                </strong>{' '}
+                is a web scraping tool that fetches known URLs from multiple
+                sources, including AlienVault&apos;s Open Threat Exchange, the
+                Wayback Machine, and Common Crawl.
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="mb-4 text-2xl font-semibold">
               Is HackerGPT Open Source?
             </h3>
             <p className="mb-4 text-lg">
@@ -63,21 +120,6 @@ const AboutUs = () => {
               .
             </p>
           </div>
-          <div>
-            <h3 className="mb-4 text-2xl font-semibold">
-              Is my information safe?
-            </h3>
-            <p className="mb-4 text-lg">
-              Absolutely! We take your privacy seriously:
-            </p>
-            <ul className="ml-8 list-disc space-y-2">
-              <li>Simple email sign-in.</li>
-              <li>Your questions aren&apos;t logged by us.</li>
-              <li>Chats are device-exclusive; we don&apos;t store them.</li>
-              <li>OpenAI doesn&apos;t know who&apos;s asking.</li>
-            </ul>
-          </div>
-
           <div>
             <h3 className="mb-4 text-2xl font-semibold">
               Need help or have questions?

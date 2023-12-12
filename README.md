@@ -9,6 +9,15 @@ When you ask a question, it's sent to our server. We verify user authenticity an
 - **HackerGPT**: A tuned version of gpt-3.5-turbo-1106 with semantic search on our data.
 - **GPT-4 Turbo**: The latest and greatest from OpenAI, paired with our unique prompt.
 
+## What Makes HackerGPT Special?
+
+HackerGPT isn't just an AI that can answer your hacking questions; it actually can hack with you using popular open-source hacking tools. To see all the tools you can use with HackerGPT, type `/tools`. If you want a quick guide on using a specific tool, like Subfinder, just type `/subfinder -h`.
+
+Below are some of the notable tools available with HackerGPT:
+
+- **[Subfinder](https://github.com/projectdiscovery/subfinder)** is a subdomain discovery tool designed to enumerate and uncover valid subdomains of websites efficiently through passive online sources.
+- **[Gau](https://github.com/lc/gau)** is a web scraping tool that fetches known URLs from multiple sources, including AlienVault's Open Threat Exchange, the Wayback Machine, and Common Crawl.
+
 ## Getting Started with HackerGPT Locally
 
 **1. Clone Repo**
