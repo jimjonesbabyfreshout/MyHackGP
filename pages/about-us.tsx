@@ -63,11 +63,12 @@ const AboutUs = () => {
               What Makes HackerGPT Special?
             </h3>
             <p className="mb-4 text-lg">
-              HackerGPT isn't just an AI that can answer your hacking questions;
-              it actually can hack with you using popular open-source hacking
-              tools. To see all the tools you can use with HackerGPT, type{' '}
-              <code>/tools</code>. If you want a quick guide on using a specific
-              tool, like Subfinder, just type <code>/subfinder -h</code>.
+              HackerGPT isn&apos;t just an AI that can answer your hacking
+              questions; it actually can hack with you using popular open-source
+              hacking tools. To see all the tools you can use with HackerGPT,
+              type <code>/tools</code>. If you want a quick guide on using a
+              specific tool, like Subfinder, just type{' '}
+              <code>/subfinder -h</code>.
             </p>
             <p className="mb-4 text-lg">
               Below are some of the notable tools available with HackerGPT:
