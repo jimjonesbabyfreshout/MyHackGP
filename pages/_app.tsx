@@ -6,6 +6,7 @@ import { Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/react';
 
 import '@/styles/globals.css';
+import { PremiumStatusProvider } from '@/hooks/PremiumStatusContext';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -16,7 +17,9 @@ function App({ Component, pageProps }: AppProps<{}>) {
     <div className={inter.className}>
       <Toaster />
       <QueryClientProvider client={queryClient}>
-        <Component {...pageProps} />
+        <PremiumStatusProvider>
+          <Component {...pageProps} />
+        </PremiumStatusProvider>
         <Analytics />
       </QueryClientProvider>
     </div>

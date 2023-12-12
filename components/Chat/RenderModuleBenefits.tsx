@@ -1,11 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import firebase from '@/utils/server/firebase-client-init';
-import { initFirebaseApp } from '@/utils/server/firebase-client-init';
-import { getCheckoutUrl } from '@/components/Payments/stripePayments';
-import { getPremiumStatus } from '@/components/Payments/getPremiumStatus';
+import React, { useState } from 'react';
 import UpgradeToPremiumPopup from '@/components/Payments/UpgradeToPremiumPopup';
-import { useRouter } from 'next/navigation';
+
+import { usePremiumStatusContext } from '@/hooks/PremiumStatusContext';
 
 type ModuleBenefits = {
   title: string;
@@ -17,54 +13,9 @@ type ModuleBenefits = {
 };
 
 export function RenderModuleBenefits(props: { moduleName: string | null }) {
-  const [user, setUser] = useState<firebase.User | null>(null);
-  const [isPremium, setIsPremium] = useState(false);
-  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [isUpgradePopupOpen, setIsUpgradePopupOpen] = useState(false);
 
-  const app = initFirebaseApp();
-  const auth = getAuth(app);
-  const router = useRouter();
-
-  useEffect(() => {
-    const fetchCheckoutUrl = async () => {
-      if (auth.currentUser) {
-        try {
-          const url = await getCheckoutUrl(app);
-          setCheckoutUrl(url);
-        } catch (error) {
-          console.error('Error fetching Stripe checkout URL:', error);
-        }
-      }
-    };
-    fetchCheckoutUrl();
-  }, [auth.currentUser?.uid]);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser as firebase.User | null);
-    });
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      if (auth.currentUser?.uid) {
-        try {
-          const url = await getCheckoutUrl(app);
-          setCheckoutUrl(url);
-
-          const newPremiumStatus = await getPremiumStatus(app);
-          setIsPremium(newPremiumStatus);
-        } catch (error) {
-          console.error(error);
-        }
-      }
-    };
-    fetchData();
-  }, [auth.currentUser?.uid]);
+  const { user, isPremium, checkoutUrl, loading } = usePremiumStatusContext();
 
   let benefits: ModuleBenefits = {
     title: '',
@@ -124,7 +75,8 @@ export function RenderModuleBenefits(props: { moduleName: string | null }) {
           <span className="block text-xs text-gray-500">{benefits.extra}</span>
         )}
       </div>
-      {(benefits.buttonText && !isPremium && user) || benefits.beta ? (
+      {(benefits.buttonText && user && !isPremium && !loading) ||
+      benefits.beta ? (
         <div
           role="group"
           className="mb-1 max-h-[calc(100vh-300px)] overflow-auto border-t border-gray-200 text-sm dark:border-hgpt-medium-gray"

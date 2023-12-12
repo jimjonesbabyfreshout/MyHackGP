@@ -11,10 +11,9 @@ import {
 } from 'react';
 import toast from 'react-hot-toast';
 
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import firebase from '@/utils/server/firebase-client-init';
+import { getAuth } from 'firebase/auth';
+import { usePremiumStatusContext } from '@/hooks/PremiumStatusContext';
 import { initFirebaseApp } from '@/utils/server/firebase-client-init';
-import { getPremiumStatus } from '@/components/Payments/getPremiumStatus';
 
 import { useTranslation } from 'next-i18next';
 
@@ -37,8 +36,6 @@ import { ChatInput } from './ChatInput';
 import { ChatLoader } from './ChatLoader';
 import { ModelSelect } from './ModelSelect';
 import { MemoizedChatMessage } from './MemoizedChatMessage';
-
-import { auth, functions } from '@/utils/server/firebase-client-init';
 
 interface Props {
   stopConversationRef: MutableRefObject<boolean>;
@@ -298,20 +295,10 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
     ]
   );
 
-  const [isPremium, setIsPremium] = useState(false);
+  const { isPremium } = usePremiumStatusContext();
 
   const app = initFirebaseApp();
   const auth = getAuth(app);
-
-  useEffect(() => {
-    const checkPremium = async () => {
-      const newPremiumStatus = auth.currentUser
-        ? await getPremiumStatus(app)
-        : false;
-      setIsPremium(newPremiumStatus);
-    };
-    checkPremium();
-  }, [app, auth.currentUser?.uid]);
 
   const scrollToBottom = useCallback(() => {
     if (autoScrollEnabled) {

@@ -1,47 +1,20 @@
-import { useEffect, useState, useContext, useRef } from 'react';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { useState, useContext, useRef } from 'react';
 import { IconBrandOpenai } from '@tabler/icons-react';
 import { useTranslation } from 'next-i18next';
 
-import firebase from '@/utils/server/firebase-client-init';
-import { initFirebaseApp } from '@/utils/server/firebase-client-init';
-import { getPremiumStatus } from '@/components/Payments/getPremiumStatus';
 import { RenderModuleBenefits } from '@/components/Chat/RenderModuleBenefits';
 import HomeContext from '@/pages/api/home/home.context';
 
+import { usePremiumStatusContext } from '@/hooks/PremiumStatusContext';
+
 export const ModelSelect = () => {
   const { t } = useTranslation('chat');
-  const [user, setUser] = useState<firebase.User | null>(null);
-  const [isPremium, setIsPremium] = useState(false);
   const [showBenefits, setShowBenefits] = useState(false);
   const [hoveredModule, setHoveredModule] = useState<string | null>(null);
 
   const timeoutRef = useRef<number | null>(null);
 
-  const app = initFirebaseApp();
-  const auth = getAuth(app);
-
-  useEffect(() => {
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser as firebase.User | null);
-    });
-
-    const checkPremium = async () => {
-      const newPremiumStatus = auth.currentUser
-        ? await getPremiumStatus(app)
-        : false;
-      setIsPremium(newPremiumStatus);
-    };
-    checkPremium();
-
-    return () => {
-      unsubscribe();
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, [app, auth.currentUser?.uid]);
+  const { isPremium } = usePremiumStatusContext();
 
   const handleModuleClick = (modelName: string) => {
     if (

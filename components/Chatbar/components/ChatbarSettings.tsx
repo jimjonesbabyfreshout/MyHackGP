@@ -4,16 +4,10 @@ import {
   IconLogin,
   IconDots,
   IconLockOpen,
-  IconNews,
   IconInfoCircle,
-  IconBrandTwitter,
 } from '@tabler/icons-react';
 
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import firebase from '@/utils/server/firebase-client-init';
-import { initFirebaseApp } from '@/utils/server/firebase-client-init';
-
-import { useEffect, useState, useContext } from 'react';
+import { useState, useContext } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
@@ -27,31 +21,15 @@ import { ClearConversations } from './ClearConversations';
 
 import LoginSignupPopup from '@/components/Authorization/LoginSignupPopup';
 
-import { getCheckoutUrl } from '@/components/Payments/stripePayments';
-import { getPremiumStatus } from '@/components/Payments/getPremiumStatus';
 import UpgradeToPremiumPopup from '@/components/Payments/UpgradeToPremiumPopup';
+import { usePremiumStatusContext } from '@/hooks/PremiumStatusContext';
 
 export const ChatbarSettings = () => {
   const { t } = useTranslation('sidebar');
   const [isSettingDialogOpen, setIsSettingDialog] = useState<boolean>(false);
-  const [user, setUser] = useState<firebase.User | null>(null);
-  const [isPremium, setIsPremium] = useState(false);
-  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isUpgradePopupOpen, setIsUpgradePopupOpen] = useState(false);
 
-  const app = initFirebaseApp();
-  const auth = getAuth(app);
-
-  useEffect(() => {
-    const checkPremium = async () => {
-      const newPremiumStatus = auth.currentUser
-        ? await getPremiumStatus(app)
-        : false;
-      setIsPremium(newPremiumStatus);
-    };
-    checkPremium();
-  }, [app, auth.currentUser?.uid]);
+  const { user, isPremium, checkoutUrl, loading } = usePremiumStatusContext();
 
   const {
     state: { conversations },
@@ -59,17 +37,6 @@ export const ChatbarSettings = () => {
   } = useContext(HomeContext);
 
   const { handleClearConversations } = useContext(ChatbarContext);
-
-  useEffect(() => {
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser as firebase.User | null);
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
 
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
@@ -89,21 +56,6 @@ export const ChatbarSettings = () => {
     setIsUpgradePopupOpen(false);
   };
 
-  useEffect(() => {
-    const fetchCheckoutUrl = async () => {
-      if (auth.currentUser) {
-        try {
-          const url = await getCheckoutUrl(app);
-          setCheckoutUrl(url);
-          setIsLoading(false);
-        } catch (error) {
-          console.error('Error fetching Stripe checkout URL:', error);
-        }
-      }
-    };
-    fetchCheckoutUrl();
-  }, [auth.currentUser?.uid]);
-
   const displayIdentifier =
     user?.displayName || (user?.email ? user.email.split('@')[0] : null);
 
@@ -115,7 +67,7 @@ export const ChatbarSettings = () => {
       <div className="flex flex-col items-center space-y-1 border-t border-white/20 pt-1 text-sm">
         {displayIdentifier ? (
           <>
-            {!isPremium && !isLoading && (
+            {user && !isPremium && !loading && (
               <SidebarButton
                 text={t('Upgrade to Plus')}
                 icon={<IconLockOpen size={18} />}
