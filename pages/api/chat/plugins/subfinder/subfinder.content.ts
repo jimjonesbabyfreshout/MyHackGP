@@ -4,8 +4,9 @@ import endent from 'endent';
 export const isSubfinderCommand = (message: string) => {
   if (!message.startsWith('/')) return false;
 
+  const trimmedMessage = message.trim();
   const commandPattern = /^\/subfinder(?:\s+-[a-z]+|\s+\S+)*$/;
-  return commandPattern.test(message);
+  return commandPattern.test(trimmedMessage);
 };
 
 const displayHelpGuide = () => {
@@ -145,7 +146,7 @@ export async function handleSubfinderRequest(
   answerMessage: Message
 ) {
   if (!enableSubfinderFeature) {
-    return new Response('The Subfinder feature is disabled.', {
+    return new Response('The Subfinder is disabled.', {
       status: 200,
       headers: corsHeaders,
     });
@@ -165,7 +166,7 @@ export async function handleSubfinderRequest(
     return new Response(params.error, { status: 200, headers: corsHeaders });
   }
 
-  let subfinderUrl = `${process.env.SECRET_SUBFINDER_FUNCTION_URL}/api/chat/plugins/subfinder?`;
+  let subfinderUrl = `${process.env.SECRET_GKE_PLUGINS_BASE_URL}/api/chat/plugins/subfinder?`;
 
   subfinderUrl += params.domain.map((d) => `domain=${d}`).join('&');
   if (params.match && params.match.length > 0) {
@@ -204,7 +205,7 @@ export async function handleSubfinderRequest(
           method: 'GET',
           headers: {
             Authorization: `${process.env.SECRET_AUTH_PLUGINS}`,
-            Header: 'hackergpt.co',
+            Host: 'plugins.hackergpt.co',
           },
         });
 

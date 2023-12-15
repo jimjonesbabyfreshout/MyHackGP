@@ -13,15 +13,11 @@ import {
   processGoogleResults,
   createAnswerPromptGoogle,
 } from '@/pages/api/chat/plugins/googlesearch';
+
 import {
-  isSubfinderCommand,
-  handleSubfinderRequest,
-} from '@/pages/api/chat/plugins/subfinder/subfinder.content';
-import {
-  isGauCommand,
-  handleGauRequest,
-} from '@/pages/api/chat/plugins/gau/gau.content';
-import {
+  toolUrls,
+  isCommand,
+  handleCommand,
   isToolsCommand,
   displayToolsHelpGuide,
 } from '@/pages/api/chat/plugins/tools';
@@ -30,7 +26,7 @@ export const config = {
   runtime: 'edge',
 };
 
-const corsHeaders = {
+export const corsHeaders = {
   'Access-Control-Allow-Origin': 'https://www.hackergpt.chat',
   'Access-Control-Allow-Methods': 'POST',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
@@ -180,66 +176,50 @@ const handler = async (req: Request): Promise<Response> => {
     encoding.free();
 
     if (userStatusOk) {
-      if (isSubfinderCommand(lastMessage.content)) {
-        if (model === ModelType.GPT4) {
-          return await handleSubfinderRequest(
-            lastMessage,
-            corsHeaders,
-            enableSubfinderPlugin,
-            OpenAIStream,
-            model,
-            messagesToSend,
-            answerMessage
-          );
-        } else {
-          return new Response(
-            'You can access [Subfinder](https://github.com/projectdiscovery/subfinder) only with GPT-4.',
-            { status: 200, headers: corsHeaders }
-          );
-        }
-      } else if (isGauCommand(lastMessage.content)) {
-        if (model === ModelType.GPT4) {
-          return await handleGauRequest(
-            lastMessage,
-            corsHeaders,
-            enableGauPlugin,
-            OpenAIStream,
-            model,
-            messagesToSend,
-            answerMessage
-          );
-        } else {
-          return new Response(
-            'You can access [Gau](https://github.com/lc/gau) only with GPT-4.',
-            { status: 200, headers: corsHeaders }
-          );
-        }
-      } else if (isToolsCommand(lastMessage.content)) {
-        return new Response(displayToolsHelpGuide(), {
-          status: 200,
-          headers: corsHeaders,
-        });
-      } else {
-        let streamResult;
-        if (model === ModelType.GPT35TurboInstruct) {
-          streamResult = await HackerGPTStream(
-            messagesToSend,
-            temperature,
-            max_tokens,
-            stream
-          );
-        } else {
-          streamResult = await OpenAIStream(
-            model,
-            messagesToSend,
-            answerMessage
-          );
+      if (lastMessage.content.startsWith('/')) {
+        if (isToolsCommand(lastMessage.content)) {
+          return new Response(displayToolsHelpGuide(), {
+            status: 200,
+            headers: corsHeaders,
+          });
         }
 
-        return new Response(streamResult, {
-          headers: corsHeaders,
-        });
+        const tools = Object.keys(toolUrls);
+        for (const tool of tools) {
+          if (isCommand(tool.toLowerCase(), lastMessage.content)) {
+            if (model !== ModelType.GPT4 && tool.toLowerCase() !== 'tools') {
+              const toolUrl = toolUrls[tool];
+              return new Response(
+                `You can access [${tool}](${toolUrl}) only with GPT-4.`,
+                { status: 200, headers: corsHeaders }
+              );
+            }
+            return await handleCommand(
+              tool.toLowerCase(),
+              lastMessage,
+              model,
+              messagesToSend,
+              answerMessage
+            );
+          }
+        }
       }
+
+      let streamResult;
+      if (model === ModelType.GPT35TurboInstruct) {
+        streamResult = await HackerGPTStream(
+          messagesToSend,
+          temperature,
+          max_tokens,
+          stream
+        );
+      } else {
+        streamResult = await OpenAIStream(model, messagesToSend, answerMessage);
+      }
+
+      return new Response(streamResult, {
+        headers: corsHeaders,
+      });
     } else {
       return new Response('An unexpected error occurred', {
         status: 500,

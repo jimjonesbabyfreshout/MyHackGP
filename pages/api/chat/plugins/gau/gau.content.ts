@@ -3,8 +3,10 @@ import { Message } from '@/types/chat';
 
 export const isGauCommand = (message: string) => {
   if (!message.startsWith('/')) return false;
+
+  const trimmedMessage = message.trim();
   const commandPattern = /^\/gau(?:\s+-[a-z]+|\s+\S+)*$/;
-  return commandPattern.test(message);
+  return commandPattern.test(trimmedMessage);
 };
 
 const displayHelpGuide = () => {
@@ -201,7 +203,7 @@ export async function handleGauRequest(
   answerMessage: Message
 ) {
   if (!enableGauFeature) {
-    return new Response('The Gau feature is disabled.', {
+    return new Response('The GAU is disabled.', {
       status: 200,
       headers: corsHeaders,
     });
@@ -221,7 +223,7 @@ export async function handleGauRequest(
     return new Response(params.error, { status: 200, headers: corsHeaders });
   }
 
-  let gauUrl = `${process.env.SECRET_GAU_FUNCTION_URL}/api/chat/plugins/gau?`;
+  let gauUrl = `${process.env.SECRET_GKE_PLUGINS_BASE_URL}/api/chat/plugins/gau?`;
 
   if (params.target) {
     gauUrl += `target=${encodeURIComponent(params.target)}`;
@@ -283,7 +285,7 @@ export async function handleGauRequest(
           method: 'GET',
           headers: {
             Authorization: `${process.env.SECRET_AUTH_PLUGINS}`,
-            Header: 'example.google.com',
+            Host: 'plugins.hackergpt.co',
           },
         });
 
@@ -300,8 +302,8 @@ export async function handleGauRequest(
           });
         }
 
-        if (gauData.length > 100000) {
-          gauData = gauData.slice(0, 100000);
+        if (gauData.length > 50000) {
+          gauData = gauData.slice(0, 50000);
         }
 
         clearInterval(intervalId);
