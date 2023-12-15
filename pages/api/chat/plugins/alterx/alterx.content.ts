@@ -4,7 +4,8 @@ export const isAlterxCommand = (message: string) => {
   if (!message.startsWith('/')) return false;
 
   const trimmedMessage = message.trim();
-  const commandPattern = /^\/alterx(?:\s+-[a-z]+|\s+\S+)*$/;
+  const commandPattern = /^\/alterx(?:\s+(-[a-z]+|\S+))*$/;
+
   return commandPattern.test(trimmedMessage);
 };
 

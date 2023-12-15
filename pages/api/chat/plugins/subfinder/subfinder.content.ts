@@ -5,7 +5,8 @@ export const isSubfinderCommand = (message: string) => {
   if (!message.startsWith('/')) return false;
 
   const trimmedMessage = message.trim();
-  const commandPattern = /^\/subfinder(?:\s+-[a-z]+|\s+\S+)*$/;
+  const commandPattern = /^\/subfinder(?:\s+(-[a-z]+|\S+))*$/;
+
   return commandPattern.test(trimmedMessage);
 };
 

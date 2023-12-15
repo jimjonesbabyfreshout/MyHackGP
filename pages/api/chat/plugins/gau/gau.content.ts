@@ -1,11 +1,11 @@
-import endent from 'endent';
 import { Message } from '@/types/chat';
 
 export const isGauCommand = (message: string) => {
   if (!message.startsWith('/')) return false;
 
   const trimmedMessage = message.trim();
-  const commandPattern = /^\/gau(?:\s+-[a-z]+|\s+\S+)*$/;
+  const commandPattern = /^\/gau(?:\s+(-[a-z]+|\S+))*$/;
+
   return commandPattern.test(trimmedMessage);
 };
 
