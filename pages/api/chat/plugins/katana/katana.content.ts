@@ -409,6 +409,18 @@ export async function handleKatanaRequest(
         });
 
         let jsonResponse = await katanaResponse.json();
+
+        if (jsonResponse.message && jsonResponse.message.includes('Katana process exited with code 1')) {
+          const errorMessage = `🚨 An error occurred while running your query. Please try again or check your input.`;
+          clearInterval(intervalId);
+          sendMessage(errorMessage, true);
+          controller.close();
+          return new Response(errorMessage, {
+            status: 200,
+            headers: corsHeaders,
+          });
+        }
+
         const outputString = jsonResponse.output;
 
         if (!outputString || outputString.length === 0) {
