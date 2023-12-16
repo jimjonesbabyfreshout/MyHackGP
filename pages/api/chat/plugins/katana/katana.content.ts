@@ -24,6 +24,7 @@ const displayHelpGuide = () => {
     CONFIGURATION
        -jc, -js-crawl               enable endpoint parsing / crawling in javascript file
        -iqp, -ignore-query-params   Ignore crawling same path with different query-param values
+       -timeout int                 time to wait for request in seconds (default 10)
 
     HEADLESS:
        -hl, -headless          enable headless hybrid crawling (experimental)
@@ -35,10 +36,10 @@ const displayHelpGuide = () => {
        -do, -display-out-scope           display external endpoint from scoped crawling
 
     FILTER:
-       -mr, -match-regex string[]       regex or list of regex to match on output url (cli, file)
-       -fr, -filter-regex string[]      regex or list of regex to filter on output url (cli, file)
-       -em, -extension-match string[]   match output for given extension (eg, -em php,html,js)
-       -ef, -extension-filter string[]  filter output for given extension (eg, -ef png,css)
+       -mr, -match-regex string[]        regex or list of regex to match on output url (cli, file)
+       -fr, -filter-regex string[]       regex or list of regex to filter on output url (cli, file)
+       -em, -extension-match string[]    match output for given extension (eg, -em php,html,js)
+       -ef, -extension-filter string[]   filter output for given extension (eg, -ef png,css)
        -mdc, -match-condition string     match response with dsl based condition
        -fdc, -filter-condition string    filter response with dsl based condition`;
 };
@@ -59,6 +60,7 @@ interface KatanaParams {
   extensionFilter: string[];
   matchCondition: string;
   filterCondition: string;
+  timeout: number;
   error: string | null;
 }
 
@@ -92,6 +94,7 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
     extensionFilter: [],
     matchCondition: '',
     filterCondition: '',
+    timeout: 10,
     error: null,
   };
 
@@ -269,6 +272,19 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
           return params;
         }
         break;
+      case '-timeout':
+        if (args[i + 1] && isInteger(args[i + 1])) {
+          let timeoutValue = parseInt(args[++i]);
+          if (timeoutValue > 300) {
+            params.error = `Timeout value exceeds the maximum limit of 300 seconds`;
+            return params;
+          }
+          params.timeout = timeoutValue;
+        } else {
+          params.error = `Invalid timeout value for '${args[i]}' flag`;
+          return params;
+        }
+        break;
     }
   }
 
@@ -377,7 +393,10 @@ export async function handleKatanaRequest(
       params.filterCondition
     )}`;
   }
-
+  if (params.timeout !== 10) { 
+    katanaUrl += `&timeout=${params.timeout}`;
+  }
+  
   const headers = new Headers(corsHeaders);
   headers.set('Content-Type', 'text/event-stream');
   headers.set('Cache-Control', 'no-cache');
@@ -392,7 +411,7 @@ export async function handleKatanaRequest(
         const formattedData = addExtraLineBreaks ? `${data}\n\n` : data;
         controller.enqueue(new TextEncoder().encode(formattedData));
       };
-
+      
       sendMessage('🚀 Starting the scan. It might take a minute.', true);
 
       const intervalId = setInterval(() => {
@@ -408,9 +427,20 @@ export async function handleKatanaRequest(
           },
         });
 
-        let jsonResponse = await katanaResponse.json();
-
-        if (jsonResponse.message && jsonResponse.message.includes('Katana process exited with code 1')) {
+        if (!katanaResponse.ok) {
+          throw new Error(`HTTP error! status: ${katanaResponse.status}`);
+        }
+        let jsonResponse;
+        if (katanaResponse.headers.get("content-type")?.includes("application/json")) {
+          jsonResponse = await katanaResponse.json();
+        } else {
+          const textResponse = await katanaResponse.text();
+          throw new Error(`Non-JSON response received: ${textResponse}`);
+        }
+        
+        const outputString = jsonResponse.output;
+        
+        if (outputString && outputString.includes('Katana process exited with code 1')) {
           const errorMessage = `🚨 An error occurred while running your query. Please try again or check your input.`;
           clearInterval(intervalId);
           sendMessage(errorMessage, true);
@@ -420,8 +450,6 @@ export async function handleKatanaRequest(
             headers: corsHeaders,
           });
         }
-
-        const outputString = jsonResponse.output;
 
         if (!outputString || outputString.length === 0) {
           const noDataMessage = `🔍 Didn't find anything for ${params.urls.join(
