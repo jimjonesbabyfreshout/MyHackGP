@@ -114,8 +114,8 @@ const parseAlterxCommandLine = (input: string): AlterxParams => {
     }
   }
 
-  if (params.list.length === 0) {
-    params.error = `🚨 No list provided`;
+  if (!params.list.length || params.list.length === 0) {
+    params.error = `🚨 Error: -l parameter is required.`;
     return params;
   }
 
@@ -252,13 +252,6 @@ function processSubdomains(outputString: string) {
 }
 
 function formatResponseString(subdomains: any[], params: AlterxParams) {
-  const date = new Date();
-  const timezone = 'UTC-5';
-  const formattedDateTime = date.toLocaleString('en-US', {
-    timeZone: 'Etc/GMT+5',
-    timeZoneName: 'short',
-  });
-
   const urlsFormatted = subdomains.join('\n');
   return (
     '## [Alterx](https://github.com/projectdiscovery/alterx) Results\n' +

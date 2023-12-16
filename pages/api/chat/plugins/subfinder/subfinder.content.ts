@@ -125,7 +125,7 @@ const parseCommandLine = (input: string) => {
     }
   }
 
-  if (!params.domain.length) {
+  if (!params.domain.length || params.domain.length === 0) {
     params.error = '🚨 Error: -d parameter is required.';
   }
 
@@ -199,7 +199,7 @@ export async function handleSubfinderRequest(
 
       const intervalId = setInterval(() => {
         sendMessage('⏳ Still working on it, please hold on...', true);
-      }, 10000);
+      }, 15000);
 
       try {
         const subfinderResponse = await fetch(subfinderUrl, {

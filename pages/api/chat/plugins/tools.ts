@@ -13,6 +13,10 @@ import {
   isGauCommand,
   handleGauRequest,
 } from '@/pages/api/chat/plugins/gau/gau.content';
+import {
+  isKatanaCommand,
+  handleKatanaRequest,
+} from '@/pages/api/chat/plugins/katana/katana.content';
 
 import { corsHeaders } from '@/pages/api/chat';
 
@@ -36,6 +40,9 @@ export const displayToolsHelpGuide = () => {
   return (
     'Tools available in HackerGPT:' +
     '\n\n' +
+    '+ [Katana](https://github.com/projectdiscovery/katana): ' +
+    'A fast crawler for automation pipelines. Use /katana -h for more details.' +
+    '\n\n' +
     '+ [Subfinder](https://github.com/projectdiscovery/subfinder): ' +
     'A powerful subdomain discovery tool. Use /subfinder -h for more details.' +
     '\n\n' +
@@ -56,15 +63,19 @@ const commandHandlers: CommandHandler = {
   handleGauRequest,
   isAlterxCommand,
   handleAlterxRequest,
+  isKatanaCommand,
+  handleKatanaRequest,
   isToolsCommand,
   displayToolsHelpGuide,
 };
 
 export const toolUrls: ToolUrls = {
+  Katana: 'https://github.com/projectdiscovery/katana',
   Subfinder: 'https://github.com/projectdiscovery/subfinder',
   Alterx: 'https://github.com/projectdiscovery/alterx',
   Gau: 'https://github.com/lc/gau',
 };
+
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export const isCommand = (commandName: string, message: string) => {
