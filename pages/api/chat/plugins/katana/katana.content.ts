@@ -426,18 +426,13 @@ export async function handleKatanaRequest(
             Host: 'plugins.hackergpt.co',
           },
         });
-
+        
         if (!katanaResponse.ok) {
           throw new Error(`HTTP error! status: ${katanaResponse.status}`);
         }
-        let jsonResponse;
-        if (katanaResponse.headers.get("content-type")?.includes("application/json")) {
-          jsonResponse = await katanaResponse.json();
-        } else {
-          const textResponse = await katanaResponse.text();
-          throw new Error(`Non-JSON response received: ${textResponse}`);
-        }
-        
+
+        const jsonResponse = await katanaResponse.json();
+
         const outputString = jsonResponse.output;
         
         if (outputString && outputString.includes('Katana process exited with code 1')) {
@@ -451,7 +446,7 @@ export async function handleKatanaRequest(
           });
         }
 
-        if (!outputString || outputString.length === 0) {
+        if (!outputString && outputString.length === 0) {
           const noDataMessage = `🔍 Didn't find anything for ${params.urls.join(
             ', '
           )}.`;
@@ -467,8 +462,8 @@ export async function handleKatanaRequest(
         clearInterval(intervalId);
         sendMessage('✅ Scan done! Now processing the results...', true);
 
-        const subdomains = processSubdomains(outputString);
-        const formattedResponse = formatResponseString(subdomains, params);
+        const urls = processurls(outputString);
+        const formattedResponse = formatResponseString(urls, params);
         sendMessage(formattedResponse, true);
 
         controller.close();
@@ -492,13 +487,13 @@ export async function handleKatanaRequest(
   return new Response(stream, { headers });
 }
 
-function processSubdomains(outputString: string) {
+function processurls(outputString: string) {
   return outputString
     .split('\n')
     .filter((subdomain) => subdomain.trim().length > 0);
 }
 
-function formatResponseString(subdomains: any[], params: KatanaParams) {
+function formatResponseString(urls: any[], params: KatanaParams) {
   const date = new Date();
   const timezone = 'UTC-5';
   const formattedDateTime = date.toLocaleString('en-US', {
@@ -506,7 +501,7 @@ function formatResponseString(subdomains: any[], params: KatanaParams) {
     timeZoneName: 'short',
   });
 
-  const urlsFormatted = subdomains.join('\n');
+  const urlsFormatted = urls.join('\n');
   return (
     '## [Katana](https://github.com/projectdiscovery/katana) Scan Results\n' +
     '**Target**: "' +
