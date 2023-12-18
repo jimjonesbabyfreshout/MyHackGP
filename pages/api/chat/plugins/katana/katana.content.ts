@@ -153,7 +153,7 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
         while (args[i + 1] && !args[i + 1].startsWith('-')) {
           const url = args[++i];
           if (!isValidUrl(url)) {
-            params.error = `Invalid URL provided for '${
+            params.error = `🚨 Invalid URL provided for '${
               args[i - 1]
             }' flag: ${url}`;
             return params;
@@ -161,7 +161,7 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
           params.urls.push(url);
         }
         if (params.urls.length === 0) {
-          params.error = `No URL provided for '${args[i]}' flag`;
+          params.error = `🚨 No URL provided for '${args[i]}' flag`;
           return params;
         }
         break;
@@ -170,7 +170,7 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
         if (args[i + 1] && isInteger(args[i + 1])) {
           params.depth = parseInt(args[++i]);
         } else {
-          params.error = `Invalid depth value for '${args[i]}' flag`;
+          params.error = `🚨 Invalid depth value for '${args[i]}' flag`;
           return params;
         }
         break;
@@ -195,7 +195,7 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
         while (args[i + 1] && !args[i + 1].startsWith('-')) {
           const scope = args[++i];
           if (!isValidRegex(scope)) {
-            params.error = `Invalid crawl scope regex pattern for '${
+            params.error = `🚨 Invalid crawl scope regex pattern for '${
               args[i - 1]
             }' flag: ${scope}`;
             return params;
@@ -203,7 +203,7 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
           params.crawlScope.push(scope);
         }
         if (params.crawlScope.length === 0) {
-          params.error = `No crawl scope regex pattern provided for '${args[i]}' flag`;
+          params.error = `🚨 No crawl scope regex pattern provided for '${args[i]}' flag`;
           return params;
         }
         break;
@@ -212,7 +212,7 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
         while (args[i + 1] && !args[i + 1].startsWith('-')) {
           const outScope = args[++i];
           if (!isValidRegex(outScope)) {
-            params.error = `Invalid crawl out-scope regex pattern for '${
+            params.error = `🚨 Invalid crawl out-scope regex pattern for '${
               args[i - 1]
             }' flag: ${outScope}`;
             return params;
@@ -220,7 +220,7 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
           params.crawlOutScope.push(outScope);
         }
         if (params.crawlOutScope.length === 0) {
-          params.error = `No crawl out-scope regex pattern provided for '${args[i]}' flag`;
+          params.error = `🚨 No crawl out-scope regex pattern provided for '${args[i]}' flag`;
           return params;
         }
         break;
@@ -233,7 +233,7 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
         while (args[i + 1] && !args[i + 1].startsWith('-')) {
           const regex = args[++i];
           if (!isValidRegex(regex)) {
-            params.error = `Invalid match regex for '${
+            params.error = `🚨 Invalid match regex for '${
               args[i - 1]
             }' flag: ${regex}`;
             return params;
@@ -241,7 +241,7 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
           params.matchRegex.push(regex);
         }
         if (params.matchRegex.length === 0) {
-          params.error = `No match regex provided for '${args[i]}' flag`;
+          params.error = `🚨 No match regex provided for '${args[i]}' flag`;
           return params;
         }
         break;
@@ -250,7 +250,7 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
         while (args[i + 1] && !args[i + 1].startsWith('-')) {
           const regex = args[++i];
           if (!isValidRegex(regex)) {
-            params.error = `Invalid filter regex for '${
+            params.error = `🚨 Invalid filter regex for '${
               args[i - 1]
             }' flag: ${regex}`;
             return params;
@@ -258,7 +258,7 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
           params.filterRegex.push(regex);
         }
         if (params.filterRegex.length === 0) {
-          params.error = `No filter regex provided for '${args[i]}' flag`;
+          params.error = `🚨 No filter regex provided for '${args[i]}' flag`;
           return params;
         }
         break;
@@ -269,7 +269,7 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
           params.extensionMatch.push(ext);
         }
         if (params.extensionMatch.length === 0) {
-          params.error = `No extension match provided for '${args[i]}' flag`;
+          params.error = `🚨 No extension match provided for '${args[i]}' flag`;
           return params;
         }
         break;
@@ -280,7 +280,7 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
           params.extensionFilter.push(ext);
         }
         if (params.extensionFilter.length === 0) {
-          params.error = `No extension filter provided for '${args[i]}' flag`;
+          params.error = `🚨 No extension filter provided for '${args[i]}' flag`;
           return params;
         }
         break;
@@ -289,7 +289,7 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
         if (args[i + 1] && !args[i + 1].startsWith('-')) {
           params.matchCondition = args[++i];
         } else {
-          params.error = `No match condition provided for '${args[i]}' flag`;
+          params.error = `🚨 No match condition provided for '${args[i]}' flag`;
           return params;
         }
         break;
@@ -298,7 +298,7 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
         if (args[i + 1] && !args[i + 1].startsWith('-')) {
           params.filterCondition = args[++i];
         } else {
-          params.error = `No filter condition provided for '${args[i]}' flag`;
+          params.error = `🚨 No filter condition provided for '${args[i]}' flag`;
           return params;
         }
         break;
@@ -306,12 +306,12 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
         if (args[i + 1] && isInteger(args[i + 1])) {
           let timeoutValue = parseInt(args[++i]);
           if (timeoutValue > 300) {
-            params.error = `Timeout value exceeds the maximum limit of 300 seconds`;
+            params.error = `🚨 Timeout value exceeds the maximum limit of 90 seconds`;
             return params;
           }
           params.timeout = timeoutValue;
         } else {
-          params.error = `Invalid timeout value for '${args[i]}' flag`;
+          params.error = `🚨 Invalid timeout value for '${args[i]}' flag`;
           return params;
         }
         break;
