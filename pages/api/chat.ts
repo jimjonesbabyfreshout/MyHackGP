@@ -45,7 +45,7 @@ const getTokenLimit = (model: string) => {
     case ModelType.GoogleBrowsing:
       return 8000;
     case ModelType.GPT4:
-      return 8000;
+      return 16000;
     default:
       return null;
   }
@@ -54,9 +54,6 @@ const getTokenLimit = (model: string) => {
 const handler = async (req: Request): Promise<Response> => {
   try {
     const useWebBrowsingPlugin = process.env.USE_WEB_BROWSING_PLUGIN === 'TRUE';
-    const enableSubfinderPlugin =
-      process.env.ENABLE_SUBFINDER_FEATURE === 'TRUE';
-    const enableGauPlugin = process.env.ENABLE_GAU_FEATURE === 'TRUE';
 
     const authToken = req.headers.get('Authorization');
     let { messages, model, max_tokens, temperature, stream } =
@@ -96,7 +93,6 @@ const handler = async (req: Request): Promise<Response> => {
 
     const prompt_tokens = encoding.encode(promptToSend()!);
     let tokenCount = prompt_tokens.length;
-    let messagesToSend: Message[] = [];
     let startIndex = 0;
 
     if (model === ModelType.GoogleBrowsing) {
@@ -112,6 +108,8 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     tokenCount += lastMessageTokens.length;
+
+    let messagesToSend: Message[] = [lastMessage];
 
     for (let i = messages.length - 1 - startIndex; i >= 0; i--) {
       const message = messages[i];
