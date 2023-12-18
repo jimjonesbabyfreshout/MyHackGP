@@ -20,7 +20,11 @@ const displayHelpGuide = () => {
     Flags:
     INPUT:
        -d, -domain string[]   domains to find subdomains for
-  
+
+    CONFIGURATION:
+       -nW, -active   display active subdomains only
+       -timeout int   seconds to wait before timing out (default 30)
+
     FILTER:
        -m, -match string[]    subdomain or list of subdomain to match (comma separated)
        -f, -filter string[]   subdomain or list of subdomain to filter (comma separated)
@@ -33,18 +37,22 @@ const displayHelpGuide = () => {
 
 interface SubfinderParams {
   domain: string[];
+  timeout: number;
   match: string[];
   filter: string[];
+  onlyActive: boolean;
   includeSources: boolean;
   outputJson: boolean;
   outputVerbose: boolean;
   error: string | null;
 }
 
-const MAX_INPUT_LENGTH = 1000;
-const MAX_PARAMETER_COUNT = 5;
-
 const parseCommandLine = (input: string) => {
+  const MAX_INPUT_LENGTH = 1000;
+  const MAX_PARAMETER_COUNT = 6;
+  const maxDomainLength = 50;
+  const maxSubdomainLength = 255;
+
   if (input.length > MAX_INPUT_LENGTH) {
     return { error: 'Input command is too long' } as SubfinderParams;
   }
@@ -56,19 +64,19 @@ const parseCommandLine = (input: string) => {
 
   const params: SubfinderParams = {
     domain: [],
+    timeout: 30,
     match: [],
     filter: [],
+    onlyActive: false,
     includeSources: false,
     outputJson: false,
     outputVerbose: false,
     error: null,
   };
 
-  const maxDomainLength = 50;
-  const maxSubdomainLength = 255;
-
+  const isInteger = (value: string) => /^[0-9]+$/.test(value);
   const isValidDomain = (domain: string) =>
-    /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domain);
+    /^[a-zA-Z0-9.-]+$/.test(domain) && domain.length <= maxDomainLength;
   const isValidSubdomain = (subdomain: string) =>
     /^[a-zA-Z0-9.-]+$/.test(subdomain);
 
@@ -110,6 +118,23 @@ const parseCommandLine = (input: string) => {
           }
         }
         break;
+      case '-timeout':
+        if (args[i + 1] && isInteger(args[i + 1])) {
+          let timeoutValue = parseInt(args[++i]);
+          if (timeoutValue > 300) {
+            params.error = `🚨 Timeout value exceeds the maximum limit of 90 seconds`;
+            return params;
+          }
+          params.timeout = timeoutValue;
+        } else {
+          params.error = `🚨 Invalid timeout value for '${args[i]}' flag`;
+          return params;
+        }
+        break;
+      case '-nW':
+      case '-active':
+        params.onlyActive = true;
+        break;
       case '-cs':
       case '-collect-sources':
         params.includeSources = true;
@@ -126,7 +151,7 @@ const parseCommandLine = (input: string) => {
   }
 
   if (!params.domain.length || params.domain.length === 0) {
-    params.error = '🚨 Error: -d parameter is required.';
+    params.error = '🚨 -d parameter is required.';
   }
 
   return params;
@@ -176,8 +201,14 @@ export async function handleSubfinderRequest(
   if (params.filter && params.filter.length > 0) {
     subfinderUrl += '&' + params.filter.map((f) => `filter=${f}`).join('&');
   }
+  if (params.onlyActive) {
+    subfinderUrl += `&onlyActive=true`;
+  }
   if (params.includeSources) {
     subfinderUrl += `&includeSources=true`;
+  }
+  if (params.timeout !== 30) {
+    subfinderUrl += `&timeout=${params.timeout}`;
   }
 
   const headers = new Headers(corsHeaders);
