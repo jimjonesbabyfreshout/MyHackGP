@@ -31,7 +31,17 @@ const displayHelpGuide = () => {
     CONFIGURATION:
        -scan-all-ips, -sa   scan all the IP's associated with DNS record
        -timeout int         millisecond to wait before timing out (default 1000)
-       
+    
+    HOST-DISCOVERY:
+       -sn, -host-discovery            Perform Only Host Discovery
+       -Pn, -skip-host-discovery       Skip Host discovery
+       -pe, -probe-icmp-echo           ICMP echo request Ping (host discovery needs to be enabled)
+       -pp, -probe-icmp-timestamp      ICMP timestamp request Ping (host discovery needs to be enabled)
+       -pm, -probe-icmp-address-mask   ICMP address mask request Ping (host discovery needs to be enabled)
+       -arp, -arp-ping                 ARP ping (host discovery needs to be enabled)
+       -nd, -nd-ping                   IPv6 Neighbor Discovery (host discovery needs to be enabled)
+       -rev-ptr                        Reverse PTR lookup for input ips
+
     OUTPUT:
        -j, -json   write output in JSON lines format`;
 };
@@ -45,6 +55,14 @@ interface NaabuParams {
   excludeCDN: boolean;
   displayCDN: boolean;
   scanAllIPs: boolean;
+  hostDiscovery: boolean;
+  skipHostDiscovery: boolean;
+  probeIcmpEcho: boolean;
+  probeIcmpTimestamp: boolean;
+  probeIcmpAddressMask: boolean;
+  arpPing: boolean;
+  ndPing: boolean;
+  revPtr: boolean;
   timeout: number;
   outputJson: boolean;
   error: string | null;
@@ -65,6 +83,14 @@ const parseNaabuCommandLine = (input: string): NaabuParams => {
     excludeCDN: false,
     displayCDN: false,
     scanAllIPs: false,
+    hostDiscovery: false,
+    skipHostDiscovery: false,
+    probeIcmpEcho: false,
+    probeIcmpTimestamp: false,
+    probeIcmpAddressMask: false,
+    arpPing: false,
+    ndPing: false,
+    revPtr: false,
     timeout: 10000,
     outputJson: false,
     error: null,
@@ -169,6 +195,37 @@ const parseNaabuCommandLine = (input: string): NaabuParams => {
       case '-scan-all-ips':
         params.scanAllIPs = true;
         break;
+      case '-sn':
+      case '-host-discovery':
+        params.hostDiscovery = true;
+        break;
+      case '-Pn':
+      case '-skip-host-discovery':
+        params.skipHostDiscovery = true;
+        break;
+      case '-pe':
+      case '-probe-icmp-echo':
+        params.probeIcmpEcho = true;
+        break;
+      case '-pp':
+      case '-probe-icmp-timestamp':
+        params.probeIcmpTimestamp = true;
+        break;
+      case '-pm':
+      case '-probe-icmp-address-mask':
+        params.probeIcmpAddressMask = true;
+        break;
+      case '-arp':
+      case '-arp-ping':
+        params.arpPing = true;
+        break;
+      case '-nd':
+      case '-nd-ping':
+        params.ndPing = true;
+        break;
+      case '-rev-ptr':
+        params.revPtr = true;
+        break;
       case '-timeout':
         if (args[i + 1] && isInteger(args[i + 1])) {
           let timeoutValue = parseInt(args[++i]);
@@ -271,6 +328,30 @@ export async function handleNaabuRequest(
   if (params.displayCDN) {
     naabuUrl += `&displayCDN=true`;
   }
+  if (params.hostDiscovery) {
+    naabuUrl += `&hostDiscovery=true`;
+  }
+  if (params.skipHostDiscovery) {
+    naabuUrl += `&skipHostDiscovery=true`;
+  }
+  if (params.probeIcmpEcho) {
+    naabuUrl += `&probeIcmpEcho=true`;
+  }
+  if (params.probeIcmpTimestamp) {
+    naabuUrl += `&probeIcmpTimestamp=true`;
+  }
+  if (params.probeIcmpAddressMask) {
+    naabuUrl += `&probeIcmpAddressMask=true`;
+  }
+  if (params.arpPing) {
+    naabuUrl += `&arpPing=true`;
+  }
+  if (params.ndPing) {
+    naabuUrl += `&ndPing=true`;
+  }
+  if (params.revPtr) {
+    naabuUrl += `&revPtr=true`;
+  }
 
   const headers = new Headers(corsHeaders);
   headers.set('Content-Type', 'text/event-stream');
@@ -312,7 +393,8 @@ export async function handleNaabuRequest(
 
         if (
           outputString &&
-          outputString.includes('Naabu process exited with code 1')
+          outputString.includes('Error executing Naabu command') &&
+          outputString.includes('Error reading output file')
         ) {
           const errorMessage = `🚨 An error occurred while running your query. Please try again or check your input.`;
           clearInterval(intervalId);
