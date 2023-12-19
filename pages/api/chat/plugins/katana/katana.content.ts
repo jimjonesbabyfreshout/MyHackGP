@@ -305,7 +305,7 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
       case '-timeout':
         if (args[i + 1] && isInteger(args[i + 1])) {
           let timeoutValue = parseInt(args[++i]);
-          if (timeoutValue > 300) {
+          if (timeoutValue > 90) {
             params.error = `🚨 Timeout value exceeds the maximum limit of 90 seconds`;
             return params;
           }
@@ -463,7 +463,8 @@ export async function handleKatanaRequest(
 
         if (
           outputString &&
-          outputString.includes('Katana process exited with code 1')
+          outputString.includes('Error executing Katana command') &&
+          outputString.includes('Error reading output file')
         ) {
           const errorMessage = `🚨 An error occurred while running your query. Please try again or check your input.`;
           clearInterval(intervalId);
