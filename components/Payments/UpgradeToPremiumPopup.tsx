@@ -253,7 +253,10 @@ const UpgradeToPremiumPopup: React.FC<Props> = ({
                             />
                           </div>
                           <div className="text-container">
-                            <p>Access to additional tools like Subfinder, Katana, Web Browsing and more</p>
+                            <p>
+                              Access to additional tools like Subfinder, Katana,
+                              Web Browsing and more
+                            </p>
                           </div>
                         </div>
                         <div className="mb-2 flex items-center">
