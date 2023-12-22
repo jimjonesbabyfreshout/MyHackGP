@@ -17,6 +17,7 @@ import {
 
 import {
   toolUrls,
+  toolIdToHandlerMapping,
   isCommand,
   handleCommand,
   isToolsCommand,
@@ -173,7 +174,25 @@ const handler = async (req: Request): Promise<Response> => {
     encoding.free();
 
     if (userStatusOk) {
-      if (lastMessage.content.startsWith('/')) {
+      let invokedByToolId = false;
+
+      if (toolId && toolIdToHandlerMapping.hasOwnProperty(toolId)) {
+        invokedByToolId = true;
+
+        const toolHandler = toolIdToHandlerMapping[toolId];
+        const response = await toolHandler(
+          lastMessage,
+          corsHeaders,
+          process.env[`ENABLE_${toolId.toUpperCase()}_FEATURE`] === 'TRUE',
+          OpenAIStream,
+          model,
+          messagesToSend,
+          answerMessage,
+          invokedByToolId
+        );
+
+        return response;
+      } else if (lastMessage.content.startsWith('/')) {
         if (isToolsCommand(lastMessage.content)) {
           return new Response(displayToolsHelpGuide(toolUrls), {
             status: 200,

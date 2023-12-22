@@ -89,6 +89,29 @@ export const toolUrls: ToolUrls = {
   Alterx: 'https://github.com/projectdiscovery/alterx',
 };
 
+type ToolHandlerFunction = (
+  lastMessage: Message,
+  corsHeaders: HeadersInit | undefined,
+  enableFeature: boolean,
+  OpenAIStream: any,
+  model: string,
+  messagesToSend: Message[],
+  answerMessage: Message,
+  invokedByToolId: boolean
+) => Promise<any>;
+
+type ToolIdToHandlerMapping = {
+  [key: string]: ToolHandlerFunction;
+};
+
+export const toolIdToHandlerMapping: ToolIdToHandlerMapping = {
+  subfinder: handleSubfinderRequest,
+  katana: handleKatanaRequest,
+  naabu: handleNaabuRequest,
+  gau: handleGauRequest,
+  alterx: handleAlterxRequest,
+};
+
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export const isCommand = (commandName: string, message: string) => {

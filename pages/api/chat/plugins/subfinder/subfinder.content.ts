@@ -49,8 +49,7 @@ interface SubfinderParams {
 
 const parseCommandLine = (input: string) => {
   const MAX_INPUT_LENGTH = 1000;
-  const MAX_PARAMETER_COUNT = 6;
-  const maxDomainLength = 50;
+  const maxDomainLength = 255;
   const maxSubdomainLength = 255;
 
   if (input.length > MAX_INPUT_LENGTH) {
@@ -58,9 +57,6 @@ const parseCommandLine = (input: string) => {
   }
 
   const args = input.split(' ');
-  if (args.length > MAX_PARAMETER_COUNT) {
-    return { error: 'Too many parameters provided' } as SubfinderParams;
-  }
 
   const params: SubfinderParams = {
     domain: [],
@@ -169,13 +165,58 @@ export async function handleSubfinderRequest(
   },
   model: string,
   messagesToSend: Message[],
-  answerMessage: Message
+  answerMessage: Message,
+  invokedByToolId: boolean
 ) {
   if (!enableSubfinderFeature) {
     return new Response('The Subfinder is disabled.', {
       status: 200,
       headers: corsHeaders,
     });
+  }
+
+  let aiResponse = '';
+
+  if (invokedByToolId) {
+    const answerPrompt = transformUserQueryToSubfinderCommand(lastMessage);
+    answerMessage.content = answerPrompt;
+
+    const openAIResponseStream = await OpenAIStream(
+      model,
+      messagesToSend,
+      answerMessage
+    );
+
+    const reader = openAIResponseStream.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      aiResponse += new TextDecoder().decode(value, { stream: true });
+    }
+
+    try {
+      const jsonMatch = aiResponse.match(/\{[\s\S]*?\}/);
+      if (jsonMatch) {
+        const jsonResponse = JSON.parse(jsonMatch[0]);
+        lastMessage.content = jsonResponse.command;
+      } else {
+        return new Response(
+          `${aiResponse}\n\nNo JSON command found in the AI response.`,
+          {
+            status: 200,
+            headers: corsHeaders,
+          }
+        );
+      }
+    } catch (error) {
+      return new Response(
+        `${aiResponse}\n\n'Error extracting and parsing JSON from AI response: ${error}`,
+        {
+          status: 200,
+          headers: corsHeaders,
+        }
+      );
+    }
   }
 
   const parts = lastMessage.content.split(' ');
@@ -188,7 +229,12 @@ export async function handleSubfinderRequest(
 
   const params = parseCommandLine(lastMessage.content);
 
-  if (params.error) {
+  if (params.error && invokedByToolId) {
+    return new Response(`${aiResponse}\n\n${params.error}`, {
+      status: 200,
+      headers: corsHeaders,
+    });
+  } else if (params.error) {
     return new Response(params.error, { status: 200, headers: corsHeaders });
   }
 
@@ -225,6 +271,10 @@ export async function handleSubfinderRequest(
         const formattedData = addExtraLineBreaks ? `${data}\n\n` : data;
         controller.enqueue(new TextEncoder().encode(formattedData));
       };
+
+      if (invokedByToolId) {
+        sendMessage(aiResponse, true);
+      }
 
       sendMessage('🚀 Starting the scan. It might take a minute.', true);
 
@@ -343,6 +393,45 @@ export async function handleSubfinderRequest(
 
   return new Response(stream, { headers });
 }
+
+const transformUserQueryToSubfinderCommand = (lastMessage: Message) => {
+  const answerMessage = endent`
+  Query: "${lastMessage.content}"
+
+  Based on this query, generate a command for the 'subfinder' tool, focusing on subdomain discovery. The command should use only the most relevant flags, with '-domain' being essential. The '-json' flag is optional and should be included only if specified in the user's request.
+
+  Command Construction Guidelines:
+  1. **Selective Flag Use**: Carefully select flags that are directly pertinent to the task. The available flags are:
+  -domain string[]: Identifies the target domain(s) for subdomain discovery. (required)
+  -active: Includes only active subdomains if necessary. (optional)
+  -timeout int: Sets a timeout limit (default is 30 seconds). (optional)
+  -match string[]: Matches specific subdomains, listed in a comma-separated format. (optional)
+  -filter string[]: Excludes certain subdomains, also in a comma-separated format. (optional)
+  -json: Outputs results in a structured JSON format. (optional)
+  -collect-sources: Gathers source information for each subdomain. (optional)
+  -verbose: Provides an in-depth analysis if detailed insights are needed. (optional)
+  Use these flags judiciously to align with the specific requirements of the request. (optional)
+  2. **Relevance and Efficiency**: Ensure that the flags chosen for the command are relevant and contribute to an effective and efficient subdomain discovery process.
+
+  Response:
+  Based on the query, the appropriate Subfinder command is:
+  ALWAYS USE THIS FORMAT BELOW:
+  \`\`\`json
+  {
+    "command": "/subfinder -domain [domain] [additional flags as needed]"
+  }
+  \`\`\`
+  Replace '[domain]' with the actual domain name. Include any of the additional flags only if they align with the specifics of the request.
+
+  For example, for a request like 'find subdomains for example.com', the command could be:
+  \`\`\`json
+  {
+    "command": "/subfinder -d example.com"
+  }
+  \`\`\``;
+
+  return answerMessage;
+};
 
 const processSubfinderData = (data: string) => {
   return data
