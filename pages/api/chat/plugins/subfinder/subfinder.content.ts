@@ -48,9 +48,9 @@ interface SubfinderParams {
 }
 
 const parseCommandLine = (input: string) => {
-  const MAX_INPUT_LENGTH = 1000;
-  const maxDomainLength = 255;
-  const maxSubdomainLength = 255;
+  const MAX_INPUT_LENGTH = 2000;
+  const maxDomainLength = 500;
+  const maxSubdomainLength = 500;
 
   if (input.length > MAX_INPUT_LENGTH) {
     return { error: 'Input command is too long' } as SubfinderParams;
