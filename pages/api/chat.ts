@@ -187,7 +187,11 @@ const handler = async (req: Request): Promise<Response> => {
         const tools = Object.keys(toolUrls);
         for (const tool of tools) {
           if (isCommand(tool.toLowerCase(), lastMessage.content)) {
-            if (model !== ModelType.GPT4 && tool.toLowerCase() !== 'tools') {
+            if (
+              model !== ModelType.GPT4 &&
+              tool.toLowerCase() !== 'tools' &&
+              tool.toLowerCase() !== 'subfinder'
+            ) {
               const toolUrl = toolUrls[tool];
               return new Response(
                 `You can access [${tool}](${toolUrl}) only with GPT-4.`,

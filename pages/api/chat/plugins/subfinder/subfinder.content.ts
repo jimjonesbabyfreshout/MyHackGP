@@ -407,7 +407,13 @@ const transformUserQueryToSubfinderCommand = (lastMessage: Message) => {
   const answerMessage = endent`
   Query: "${lastMessage.content}"
 
-  Based on this query, generate a command for the 'subfinder' tool, focusing on subdomain discovery. The command should use only the most relevant flags, with '-domain' being essential. The '-json' flag is optional and should be included only if specified in the user's request.
+  Based on this query, generate a command for the 'subfinder' tool, focusing on subdomain discovery. The command should use only the most relevant flags, with '-domain' being essential. The '-json' flag is optional and should be included only if specified in the user's request.  The command should adhere to the following format:
+  
+  ALWAYS USE THIS FORMAT:
+  \`\`\`json
+  { "command": "subfinder -domain [domain] [additional flags as needed]" }
+  \`\`\`
+  Replace '[domain]' with the actual domain name. Include any of the additional flags only if they align with the specifics of the request.
 
   Command Construction Guidelines:
   1. **Selective Flag Use**: Carefully select flags that are directly pertinent to the task. The available flags are:
@@ -422,18 +428,12 @@ const transformUserQueryToSubfinderCommand = (lastMessage: Message) => {
     Use these flags judiciously to align with the specific requirements of the request. (optional)
   2. **Relevance and Efficiency**: Ensure that the flags chosen for the command are relevant and contribute to an effective and efficient subdomain discovery process.
 
-  Response:
-  Based on the query, the appropriate Subfinder command is:
-  ALWAYS USE THIS FORMAT BELOW:
-  \`\`\`json
-  { "command": "subfinder -domain [domain] [additional flags as needed]" }
-  \`\`\`
-  Replace '[domain]' with the actual domain name. Include any of the additional flags only if they align with the specifics of the request.
-
   For example, for a request like 'find subdomains for example.com', the command could be:
   \`\`\`json
   { "command": "subfinder -d example.com" }
-  \`\`\``;
+  \`\`\`
+  
+  Response:`;
 
   return answerMessage;
 };

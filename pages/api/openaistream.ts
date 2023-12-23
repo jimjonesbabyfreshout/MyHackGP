@@ -75,6 +75,11 @@ export const OpenAIStream = async (
     if (answerMessage.content.trim()) {
       commonBody['messages'].push(answerMessage);
     }
+  } else if (model === 'gpt-3.5-turbo-instruct') {
+    commonBody.model = `${process.env.SECRET_HACKERGPT_MODEL}`;
+    if (answerMessage.content.trim()) {
+      commonBody['messages'].push(answerMessage);
+    }
   }
 
   const requestOptions = {
