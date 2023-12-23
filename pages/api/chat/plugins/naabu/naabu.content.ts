@@ -23,7 +23,7 @@ const displayHelpGuide = () => {
 
     PORT:
        -port, -p string             ports to scan (80,443, 100-200)
-       -top-ports, -tp string       top ports to scan (default 100) [full,100,1000]
+       -top-ports, -tp string       top ports to scan (default 100) [100,1000]
        -exclude-ports, -ep string   ports to exclude from scan (comma-separated)
        -port-threshold, -pts int    port threshold to skip port scan for the host
        -exclude-cdn, -ec            skip full port scans for CDN/WAF (only scan for port 80,443)
@@ -70,9 +70,9 @@ interface NaabuParams {
 }
 
 const parseNaabuCommandLine = (input: string): NaabuParams => {
-  const MAX_INPUT_LENGTH = 2000;
-  const MAX_PARAM_LENGTH = 500;
-  const MAX_ARRAY_SIZE = 250;
+  const MAX_INPUT_LENGTH = 500;
+  const MAX_PARAM_LENGTH = 100;
+  const MAX_ARRAY_SIZE = 100;
 
   const params: NaabuParams = {
     host: [],
@@ -122,7 +122,7 @@ const parseNaabuCommandLine = (input: string): NaabuParams => {
     });
   };
   const isValidTopPortsValue = (value: string) => {
-    return value === 'full' || ['100', '1000'].includes(value);
+    return ['100', '1000'].includes(value);
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -458,8 +458,8 @@ export async function handleNaabuRequest(
           });
         }
 
-        if (!outputString && outputString.length === 0) {
-          const noDataMessage = `🔍 Didn't find any valid ports for ${params.host}.`;
+        if (!outputString || outputString.length === 0) {
+          const noDataMessage = `🔍 I've just finished going through your command: "${lastMessage.content}". Looks like there aren't any valid ports to report for "${params.host}".`;
           clearInterval(intervalId);
           sendMessage(noDataMessage, true);
           controller.close();
@@ -507,7 +507,7 @@ const transformUserQueryToNaabuCommand = (lastMessage: Message) => {
   1. **Selective Flag Use**: Include only the flags that are essential to the request. The available flags for Naabu are:
     -host string[]: (Required) Hosts to scan ports for.
     -port string: Ports to scan (e.g., 80,443, 100-200).
-    -top-ports string: Top ports to scan (e.g., full, 100, 1000).
+    -top-ports string: Top ports to scan (100, 1000).
     -exclude-ports string: Ports to exclude from scan.
     -port-threshold int: Port threshold to skip port scan for the host.
     -exclude-cdn: Skip full port scans for CDN/WAF.

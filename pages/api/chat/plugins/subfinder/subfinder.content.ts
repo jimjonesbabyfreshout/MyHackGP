@@ -48,15 +48,16 @@ interface SubfinderParams {
 }
 
 const parseCommandLine = (input: string) => {
-  const MAX_INPUT_LENGTH = 2000;
-  const maxDomainLength = 500;
-  const maxSubdomainLength = 500;
+  const MAX_INPUT_LENGTH = 500;
+  const maxDomainLength = 100;
+  const maxSubdomainLength = 100;
 
   if (input.length > MAX_INPUT_LENGTH) {
     return { error: 'Input command is too long' } as SubfinderParams;
   }
 
   const args = input.split(' ');
+  args.shift();
 
   const params: SubfinderParams = {
     domain: [],
@@ -80,10 +81,13 @@ const parseCommandLine = (input: string) => {
     switch (args[i]) {
       case '-d':
       case '-domain':
-        while (args[i + 1] && !args[i + 1].startsWith('-')) {
-          const domain = args[++i];
-          if (isValidDomain(domain) && domain.length <= maxDomainLength) {
-            params.domain.push(domain);
+        const domainArgs = args[++i].split(',');
+        for (const domain of domainArgs) {
+          if (
+            isValidDomain(domain.trim()) &&
+            domain.length <= maxDomainLength
+          ) {
+            params.domain.push(domain.trim());
           } else {
             params.error = `🚨 Invalid or too long domain provided (max ${maxDomainLength} characters)`;
             return params;
@@ -143,6 +147,9 @@ const parseCommandLine = (input: string) => {
       case '-verbose':
         params.outputVerbose = true;
         break;
+      default:
+        params.error = `🚨 Invalid or unrecognized flag: ${args}`;
+        return params;
     }
   }
 
@@ -295,10 +302,12 @@ export async function handleSubfinderRequest(
 
         subfinderData = processSubfinderData(subfinderData);
 
-        if (subfinderData.length === 0) {
-          const noDataMessage = `🔍 Didn't find any subdomains for "${params.domain.join(
+        if (!subfinderData || subfinderData.length === 0) {
+          const noDataMessage = `🔍 Alright, I've looked into "${params.domain.join(
             ', '
-          )}"`;
+          )}" based on your command: "${
+            lastMessage.content
+          }". Turns out, there are no subdomains to report back on this time.`;
           clearInterval(intervalId);
           sendMessage(noDataMessage, true);
           controller.close();
@@ -417,13 +426,13 @@ const transformUserQueryToSubfinderCommand = (lastMessage: Message) => {
   Based on the query, the appropriate Subfinder command is:
   ALWAYS USE THIS FORMAT BELOW:
   \`\`\`json
-  { "command": "/subfinder -domain [domain] [additional flags as needed]" }
+  { "command": "subfinder -domain [domain] [additional flags as needed]" }
   \`\`\`
   Replace '[domain]' with the actual domain name. Include any of the additional flags only if they align with the specifics of the request.
 
   For example, for a request like 'find subdomains for example.com', the command could be:
   \`\`\`json
-  { "command": "/subfinder -d example.com" }
+  { "command": "subfinder -d example.com" }
   \`\`\``;
 
   return answerMessage;
