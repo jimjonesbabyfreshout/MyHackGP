@@ -24,7 +24,7 @@ export const getCryptoPaymentStatus = async (token: string) => {
       status = 'Your subscription has expired.';
     }
 
-    if (data.ends_at) {
+    if (data.ends_at && data.status !== 'confirmation-pending') {
       if (data.status === 'expired') {
         status += ` It expired on ${data.ends_at.split('T')[0]}`;
       } else {
