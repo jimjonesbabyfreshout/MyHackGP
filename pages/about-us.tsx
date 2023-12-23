@@ -23,7 +23,6 @@ const AboutUs = () => {
               How does HackerGPT work?
             </h3>
             <p className="mb-4 text-lg">
-<<<<<<< HEAD
               When you ask a question, it&apos;s sent to our server. We verify
               user authenticity and manage your question quota based on whether
               you&apos;re a free or plus user. We then search our database for
@@ -33,17 +32,6 @@ const AboutUs = () => {
               into the AI&apos;s response process. Your question is then
               securely passed to OpenAI for processing, with no personal
               information sent. Responses vary based on the module:
-=======
-              When you ask a question, it&apos;s sent to our server. We verify user
-              authenticity and manage your question quota based on whether
-              you&apos;re a free or plus user. We then search our database for
-              information that closely matches your question. For questions not
-              in English, we translate them to find relevant information from
-              our database. If a strong match is found, it&apos;s incorporated into
-              the AI&apos;s response process. Your question is then securely passed
-              to OpenAI for processing, with no personal information sent.
-              Responses vary based on the module:
->>>>>>> 62c53c15315e6a57650ac8790a47c1fee0bf34aa
             </p>
             <ul className="ml-8 list-disc space-y-2">
               <li>
@@ -56,28 +44,6 @@ const AboutUs = () => {
               </li>
             </ul>
           </div>
-<<<<<<< HEAD
-=======
-          <div>
-            <h3 className="mb-4 text-2xl font-semibold">
-              Is HackerGPT Open Source?
-            </h3>
-            <p className="mb-4 text-lg">
-              Absolutely! HackerGPT is committed to transparency and community
-              collaboration. Our code is open source, allowing anyone to view,
-              study, and understand how our software works. This also enables
-              developers around the world to contribute to its development and
-              improvement. Check out our GitHub repository for more details:{' '}
-              <a
-                href="https://github.com/Hacker-GPT/HackerGPT"
-                className="text-blue-500 hover:text-blue-600 hover:underline"
-              >
-                HackerGPT on GitHub
-              </a>
-              .
-            </p>
-          </div>
->>>>>>> 62c53c15315e6a57650ac8790a47c1fee0bf34aa
           <div>
             <h3 className="mb-4 text-2xl font-semibold">
               Is my information safe?
