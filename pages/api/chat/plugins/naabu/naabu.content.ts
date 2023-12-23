@@ -319,6 +319,7 @@ export async function handleNaabuRequest(
       );
     }
   }
+
   const parts = lastMessage.content.split(' ');
   if (parts.includes('-h')) {
     return new Response(displayHelpGuide(), {
