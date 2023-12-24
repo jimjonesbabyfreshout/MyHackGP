@@ -1,4 +1,5 @@
 import { Message } from '@/types/chat';
+import endent from 'endent';
 
 export const isAlterxCommand = (message: string) => {
   if (!message.startsWith('/')) return false;
@@ -109,13 +110,13 @@ const parseAlterxCommandLine = (input: string): AlterxParams => {
         }
         break;
       default:
-        params.error = `🚨 Invalid or unrecognized flag: ${arg}`;
+        params.error = `🚨 Invalid or unrecognized flag: ${args[i]}`;
         return params;
     }
   }
 
   if (!params.list.length || params.list.length === 0) {
-    params.error = `🚨 Error: -l parameter is required.`;
+    params.error = `🚨 Error: -l/-list parameter is required.`;
     return params;
   }
 
@@ -134,7 +135,8 @@ export async function handleAlterxRequest(
   },
   model: string,
   messagesToSend: Message[],
-  answerMessage: Message
+  answerMessage: Message,
+  invokedByToolId: boolean
 ) {
   if (!enableAlterxFeature) {
     return new Response('The Alterx is disabled.', {
@@ -143,8 +145,53 @@ export async function handleAlterxRequest(
     });
   }
 
+  let aiResponse = '';
+
+  if (invokedByToolId) {
+    const answerPrompt = transformUserQueryToAlterxCommand(lastMessage);
+    answerMessage.content = answerPrompt;
+
+    const openAIResponseStream = await OpenAIStream(
+      model,
+      messagesToSend,
+      answerMessage
+    );
+
+    const reader = openAIResponseStream.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      aiResponse += new TextDecoder().decode(value, { stream: true });
+    }
+
+    try {
+      const jsonMatch = aiResponse.match(/```json\n\{.*?\}\n```/s);
+      if (jsonMatch) {
+        const jsonResponseString = jsonMatch[0].replace(/```json\n|\n```/g, '');
+        const jsonResponse = JSON.parse(jsonResponseString);
+        lastMessage.content = jsonResponse.command;
+      } else {
+        return new Response(
+          `${aiResponse}\n\nNo JSON command found in the AI response.`,
+          {
+            status: 200,
+            headers: corsHeaders,
+          }
+        );
+      }
+    } catch (error) {
+      return new Response(
+        `${aiResponse}\n\n'Error extracting and parsing JSON from AI response: ${error}`,
+        {
+          status: 200,
+          headers: corsHeaders,
+        }
+      );
+    }
+  }
+
   const parts = lastMessage.content.split(' ');
-  if (parts.includes('-h')) {
+  if (parts.includes('-h') || parts.includes('-help')) {
     return new Response(displayHelpGuide(), {
       status: 200,
       headers: corsHeaders,
@@ -182,6 +229,10 @@ export async function handleAlterxRequest(
         const formattedData = addExtraLineBreaks ? `${data}\n\n` : data;
         controller.enqueue(new TextEncoder().encode(formattedData));
       };
+
+      if (invokedByToolId) {
+        sendMessage(aiResponse, true);
+      }
 
       sendMessage('🚀 Starting the scan. It might take a minute.', true);
 
@@ -244,6 +295,44 @@ export async function handleAlterxRequest(
 
   return new Response(stream, { headers });
 }
+
+const transformUserQueryToAlterxCommand = (lastMessage: Message) => {
+  const answerMessage = endent`
+  Query: "${lastMessage.content}"
+
+  Based on this query, generate a command for the 'Alterx' tool, a customizable subdomain wordlist generator. The command should use the most relevant flags, with '-l' or '-list' being essential for specifying subdomains to use when creating permutations. Include the '-help' flag if a help guide or a full list of flags is requested. The command should follow this structured format for clarity and accuracy:
+  
+  ALWAYS USE THIS FORMAT:
+  \`\`\`json
+  { "command": "alterx [flags]" }
+  \`\`\`
+  Replace '[flags]' with the actual flags and values. Include additional flags only if they are specifically relevant to the request. Ensure the command is properly escaped to be valid JSON.
+
+  Command Construction Guidelines:
+  1. **Selective Flag Use**: Carefully choose flags that are pertinent to the task. The available flags for the 'katana' tool include:
+    - -l, -list: Specify subdomains to use when creating permutations (required).
+    - -p, -pattern: Custom permutation patterns input to generate (optional).
+    - -en, -enrich: Enrich wordlist by extracting words from input (optional).
+    - -limit: Limit the number of results to return, with the default being 0 (optional).
+    - -help: Display help and all available flags. (optional)
+    Use these flags to align with the request's specific requirements or when '-help' is requested for help.
+  2. **Relevance and Efficiency**: Ensure that the selected flags are relevant and contribute to an effective and efficient wordlist generation process.
+
+  Example Commands:
+  For generating a wordlist with specific subdomains:
+  \`\`\`json
+  { "command": "alterx -l subdomain1.com,subdomain2.com -en" }
+  \`\`\`
+  
+  For a request for help or to see all flags:
+  \`\`\`json
+  { "command": "alterx -help" }
+  \`\`\`
+  
+  Response:`;
+
+  return answerMessage;
+};
 
 function processSubdomains(outputString: string) {
   return outputString

@@ -315,13 +315,13 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
         }
         break;
       default:
-        params.error = `🚨 Invalid or unrecognized flag: ${args}`;
+        params.error = `🚨 Invalid or unrecognized flag: ${args[i]}`;
         return params;
     }
   }
 
   if (!params.urls.length || params.urls.length === 0) {
-    params.error = '🚨 Error: -u parameter is required.';
+    params.error = '🚨 Error: -u/-list parameter is required.';
   }
 
   return params;

@@ -1,4 +1,5 @@
 import { Message } from '@/types/chat';
+import endent from 'endent';
 
 export const isGauCommand = (message: string) => {
   if (!message.startsWith('/')) return false;
@@ -170,8 +171,8 @@ const parseGauCommandLine = (input: string): GauParams => {
           }
           break;
         default:
-          params.error = `🚨 Invalid flag provided`;
-          break;
+          params.error = `🚨 Invalid or unrecognized flag: ${args[i]}`;
+          return params;
       }
     } catch (error) {
       if (error instanceof Error) {
@@ -180,7 +181,7 @@ const parseGauCommandLine = (input: string): GauParams => {
     }
   }
 
-  if (!params.target) {
+  if (!params.target || params.target.length === 0) {
     params.error = `🚨 No target domain/URL provided`;
     return params;
   }
@@ -200,7 +201,8 @@ export async function handleGauRequest(
   },
   model: string,
   messagesToSend: Message[],
-  answerMessage: Message
+  answerMessage: Message,
+  invokedByToolId: boolean
 ) {
   if (!enableGauFeature) {
     return new Response('The GAU is disabled.', {
@@ -209,8 +211,53 @@ export async function handleGauRequest(
     });
   }
 
+  let aiResponse = '';
+
+  if (invokedByToolId) {
+    const answerPrompt = transformUserQueryToGAUCommand(lastMessage);
+    answerMessage.content = answerPrompt;
+
+    const openAIResponseStream = await OpenAIStream(
+      model,
+      messagesToSend,
+      answerMessage
+    );
+
+    const reader = openAIResponseStream.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      aiResponse += new TextDecoder().decode(value, { stream: true });
+    }
+
+    try {
+      const jsonMatch = aiResponse.match(/```json\n\{.*?\}\n```/s);
+      if (jsonMatch) {
+        const jsonResponseString = jsonMatch[0].replace(/```json\n|\n```/g, '');
+        const jsonResponse = JSON.parse(jsonResponseString);
+        lastMessage.content = jsonResponse.command;
+      } else {
+        return new Response(
+          `${aiResponse}\n\nNo JSON command found in the AI response.`,
+          {
+            status: 200,
+            headers: corsHeaders,
+          }
+        );
+      }
+    } catch (error) {
+      return new Response(
+        `${aiResponse}\n\n'Error extracting and parsing JSON from AI response: ${error}`,
+        {
+          status: 200,
+          headers: corsHeaders,
+        }
+      );
+    }
+  }
+
   const parts = lastMessage.content.split(' ');
-  if (parts.includes('-h')) {
+  if (parts.includes('-h') || parts.includes('-help')) {
     return new Response(displayHelpGuide(), {
       status: 200,
       headers: corsHeaders,
@@ -273,6 +320,10 @@ export async function handleGauRequest(
         const formattedData = addExtraLineBreaks ? `${data}\n\n` : data;
         controller.enqueue(new TextEncoder().encode(formattedData));
       };
+
+      if (invokedByToolId) {
+        sendMessage(aiResponse, true);
+      }
 
       sendMessage('🚀 Starting the scan. It might take a minute.', true);
 
@@ -351,6 +402,51 @@ export async function handleGauRequest(
 
   return new Response(stream, { headers });
 }
+
+const transformUserQueryToGAUCommand = (lastMessage: Message) => {
+  const answerMessage = endent`
+  Query: "${lastMessage.content}"
+
+  Based on this query, generate a command for the 'Gau' tool, designed for fetching URLs from various sources. The command should use the most relevant flags, tailored to the specifics of the target and the user's requirements. The command should follow this structured format for clarity and accuracy:
+
+  ALWAYS USE THIS FORMAT:
+  \`\`\`json
+  { "command": "gau [target] [flags]" }
+  \`\`\`
+  Replace '[target]' with the actual target and '[flags]' with the actual flags and values. Include additional flags only if they are specifically relevant to the request.
+
+  Command Construction Guidelines for Gau:
+  1. **Configuration Flags**:
+    - --from: Fetch URLs from date (format: YYYYMM). (optional)
+    - --to: Fetch URLs to date (format: YYYYMM). (optional)
+    - --providers: List of providers to use (wayback, commoncrawl, otx, urlscan). (optional)
+
+  2. **Filter Flags**:
+    - --blacklist: List of extensions to skip. (optional)
+    - --fc: List of status codes to filter. (optional)
+    - --ft: List of mime-types to filter. (optional)
+    - --mc: List of status codes to match. (optional)
+    - --mt: List of mime-types to match. (optional)
+    - --fp: Remove different parameters of the same endpoint. (optional)
+
+  3. **Relevance and Efficiency**:
+    Ensure that the selected flags are relevant and contribute to an effective and efficient URL fetching process.
+
+  Example Commands:
+  For fetching URLs for a specific target with certain filters:
+  \`\`\`json
+  { "command": "gau example.com --from 202001 --to 202012 --blacklist js,css --fc 404" }
+  \`\`\`
+
+  For a request for help or to see all flags:
+  \`\`\`json
+  { "command": "gau -help" }
+  \`\`\`
+
+  Response:`;
+
+  return answerMessage;
+};
 
 const processGauData = (data: string): string => {
   const lines = data.split('\n');

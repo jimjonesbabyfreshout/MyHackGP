@@ -242,13 +242,13 @@ const parseNaabuCommandLine = (input: string): NaabuParams => {
         params.outputJson = true;
         break;
       default:
-        params.error = `🚨 Invalid or unrecognized flag: ${arg}`;
+        params.error = `🚨 Invalid or unrecognized flag: ${args[i]}`;
         return params;
     }
   }
 
-  if (!params.host) {
-    params.error = `🚨 No host provided`;
+  if (!params.host || params.host.length === 0) {
+    params.error = `🚨 Error: -host parameter is required.`;
   }
 
   return params;

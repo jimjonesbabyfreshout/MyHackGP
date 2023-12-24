@@ -148,13 +148,13 @@ const parseCommandLine = (input: string) => {
         params.outputVerbose = true;
         break;
       default:
-        params.error = `🚨 Invalid or unrecognized flag: ${args}`;
+        params.error = `🚨 Invalid or unrecognized flag: ${args[i]}`;
         return params;
     }
   }
 
   if (!params.domain.length || params.domain.length === 0) {
-    params.error = '🚨 -d parameter is required.';
+    params.error = '🚨 Error: -d/-domain parameter is required.';
   }
 
   return params;
