@@ -16,7 +16,12 @@ HackerGPT isn't just an AI that can answer your hacking questions; it actually c
 Below are some of the notable tools available with HackerGPT:
 
 - **[Subfinder](https://github.com/projectdiscovery/subfinder)** is a subdomain discovery tool designed to enumerate and uncover valid subdomains of websites efficiently through passive online sources.
-- **[Gau](https://github.com/lc/gau)** is a web scraping tool that fetches known URLs from multiple sources, including AlienVault's Open Threat Exchange, the Wayback Machine, and Common Crawl.
+- **[Katana](https://github.com/projectdiscovery/katana)** is a next-generation crawling and spidering framework designed for robust, efficient web enumeration.
+- **[Naabu](https://github.com/projectdiscovery/naabu)** is a high-speed port scanning tool, focused on delivering efficient and reliable network exploration.
+
+Oh, and yes, you can effortlessly use these tools without typing complex commands — simply select the tool you want and describe in your own words what you need to do.
+
+Along with these, there are more tools available with HackerGPT.
 
 ## Getting Started with HackerGPT Locally
 

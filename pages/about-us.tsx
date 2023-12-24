@@ -90,17 +90,36 @@ const AboutUs = () => {
               <li>
                 <strong>
                   <a
-                    href="https://github.com/lc/gau"
+                    href="https://github.com/projectdiscovery/katana"
                     className="text-blue-500 hover:text-blue-600 hover:underline"
                   >
-                    Gau
+                    Katana
                   </a>
                 </strong>{' '}
-                is a web scraping tool that fetches known URLs from multiple
-                sources, including AlienVault&apos;s Open Threat Exchange, the
-                Wayback Machine, and Common Crawl.
+                is a next-generation crawling and spidering framework designed
+                for robust, efficient web enumeration.
+              </li>
+              <li>
+                <strong>
+                  <a
+                    href="https://github.com/projectdiscovery/naabu"
+                    className="text-blue-500 hover:text-blue-600 hover:underline"
+                  >
+                    Naabu
+                  </a>
+                </strong>{' '}
+                is a high-speed port scanning tool, focused on delivering
+                efficient and reliable network exploration.
               </li>
             </ul>
+            <p className="mb-4 text-lg">
+              <p className="mb-4 text-lg">
+                Oh, and yes, you can effortlessly use these tools without typing
+                complex commands — simply select the tool you want and describe
+                in your own words what you need to do.
+              </p>
+              Along with these, there are more tools available with HackerGPT.
+            </p>
           </div>
           <div>
             <h3 className="mb-4 text-2xl font-semibold">
