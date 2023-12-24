@@ -202,9 +202,10 @@ export async function handleSubfinderRequest(
     }
 
     try {
-      const jsonMatch = aiResponse.match(/\{[\s\S]*?\}/);
+      const jsonMatch = aiResponse.match(/```json\n\{.*?\}\n```/s);
       if (jsonMatch) {
-        const jsonResponse = JSON.parse(jsonMatch[0]);
+        const jsonResponseString = jsonMatch[0].replace(/```json\n|\n```/g, '');
+        const jsonResponse = JSON.parse(jsonResponseString);
         lastMessage.content = jsonResponse.command;
       } else {
         return new Response(
@@ -227,7 +228,7 @@ export async function handleSubfinderRequest(
   }
 
   const parts = lastMessage.content.split(' ');
-  if (parts.includes('-h')) {
+  if (parts.includes('-h') || parts.includes('-help')) {
     return new Response(displayHelpGuide(), {
       status: 200,
       headers: corsHeaders,
@@ -407,13 +408,13 @@ const transformUserQueryToSubfinderCommand = (lastMessage: Message) => {
   const answerMessage = endent`
   Query: "${lastMessage.content}"
 
-  Based on this query, generate a command for the 'subfinder' tool, focusing on subdomain discovery. The command should use only the most relevant flags, with '-domain' being essential. The '-json' flag is optional and should be included only if specified in the user's request.  The command should adhere to the following format:
+  Based on this query, generate a command for the 'subfinder' tool, focusing on subdomain discovery. The command should use only the most relevant flags, with '-domain' being essential. The '-json' flag is optional and should be included only if specified in the user's request. Include the '-help' flag if a help guide or a full list of flags is requested. The command should follow this structured format for clarity and accuracy:
   
   ALWAYS USE THIS FORMAT:
   \`\`\`json
   { "command": "subfinder -domain [domain] [additional flags as needed]" }
   \`\`\`
-  Replace '[domain]' with the actual domain name. Include any of the additional flags only if they align with the specifics of the request.
+  Replace '[domain]' with the actual domain name. Include any of the additional flags only if they align with the specifics of the request. Ensure the command is properly escaped to be valid JSON.
 
   Command Construction Guidelines:
   1. **Selective Flag Use**: Carefully select flags that are directly pertinent to the task. The available flags are:
@@ -425,14 +426,20 @@ const transformUserQueryToSubfinderCommand = (lastMessage: Message) => {
     -json: Outputs results in a structured JSON format. (optional)
     -collect-sources: Gathers source information for each subdomain. (optional)
     -verbose: Provides an in-depth analysis if detailed insights are needed. (optional)
-    Use these flags judiciously to align with the specific requirements of the request. (optional)
+    -help: Display help and all available flags. (optional)
+    Use these flags to align with the request's specific requirements or when '-help' is requested for help.
   2. **Relevance and Efficiency**: Ensure that the flags chosen for the command are relevant and contribute to an effective and efficient subdomain discovery process.
 
   For example, for a request like 'find subdomains for example.com', the command could be:
   \`\`\`json
-  { "command": "subfinder -d example.com" }
+  { "command": "subfinder -domain example.com" }
   \`\`\`
   
+  For a request for help or all flags, the command could be:
+  \`\`\`json
+  { "command": "naabu -help" }
+  \`\`\`
+
   Response:`;
 
   return answerMessage;

@@ -86,18 +86,15 @@ interface KatanaParams {
 }
 
 const parseKatanaCommandLine = (input: string): KatanaParams => {
-  const MAX_INPUT_LENGTH = 2000;
+  const MAX_INPUT_LENGTH = 1000;
   const MAX_PARAM_LENGTH = 100;
-  const MAX_PARAMETER_COUNT = 15;
 
   if (input.length > MAX_INPUT_LENGTH) {
     return { error: 'Input command is too long' } as KatanaParams;
   }
 
   const args = input.split(' ');
-  if (args.length > MAX_PARAMETER_COUNT) {
-    return { error: 'Too many parameters provided' } as KatanaParams;
-  }
+  args.shift();
 
   const params: KatanaParams = {
     urls: [],
@@ -120,9 +117,11 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
     help: undefined,
   };
 
-  const helpIndex = args.indexOf('-h');
-  if (helpIndex !== -1) {
-    const nextArg = args[helpIndex + 1];
+  const helpFlagIndex = args.findIndex(
+    (arg) => arg === '-h' || arg === '-help'
+  );
+  if (helpFlagIndex !== -1) {
+    const nextArg = args[helpFlagIndex + 1];
     const helpSection = nextArg && !nextArg.startsWith('-') ? nextArg : null;
     params.help = displayHelpGuide(helpSection);
     return params;
@@ -315,6 +314,9 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
           return params;
         }
         break;
+      default:
+        params.error = `🚨 Invalid or unrecognized flag: ${args}`;
+        return params;
     }
   }
 
@@ -337,7 +339,8 @@ export async function handleKatanaRequest(
   },
   model: string,
   messagesToSend: Message[],
-  answerMessage: Message
+  answerMessage: Message,
+  invokedByToolId: boolean
 ) {
   if (!enableKatanaFeature) {
     return new Response('The Katana feature is disabled.', {
@@ -346,8 +349,52 @@ export async function handleKatanaRequest(
     });
   }
 
-  const params = parseKatanaCommandLine(lastMessage.content);
+  let aiResponse = '';
 
+  if (invokedByToolId) {
+    const answerPrompt = transformUserQueryToKatanaCommand(lastMessage);
+    answerMessage.content = answerPrompt;
+
+    const openAIResponseStream = await OpenAIStream(
+      model,
+      messagesToSend,
+      answerMessage
+    );
+
+    const reader = openAIResponseStream.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      aiResponse += new TextDecoder().decode(value, { stream: true });
+    }
+
+    try {
+      const jsonMatch = aiResponse.match(/```json\n\{.*?\}\n```/s);
+      if (jsonMatch) {
+        const jsonResponseString = jsonMatch[0].replace(/```json\n|\n```/g, '');
+        const jsonResponse = JSON.parse(jsonResponseString);
+        lastMessage.content = jsonResponse.command;
+      } else {
+        return new Response(
+          `${aiResponse}\n\nNo JSON command found in the AI response.`,
+          {
+            status: 200,
+            headers: corsHeaders,
+          }
+        );
+      }
+    } catch (error) {
+      return new Response(
+        `${aiResponse}\n\n'Error extracting and parsing JSON from AI response: ${error}`,
+        {
+          status: 200,
+          headers: corsHeaders,
+        }
+      );
+    }
+  }
+
+  const params = parseKatanaCommandLine(lastMessage.content);
   if (params.help) {
     return new Response(params.help, { status: 200, headers: corsHeaders });
   }
@@ -438,6 +485,10 @@ export async function handleKatanaRequest(
         controller.enqueue(new TextEncoder().encode(formattedData));
       };
 
+      if (invokedByToolId) {
+        sendMessage(aiResponse, true);
+      }
+
       sendMessage('🚀 Starting the scan. It might take a minute.', true);
 
       const intervalId = setInterval(() => {
@@ -516,6 +567,54 @@ export async function handleKatanaRequest(
 
   return new Response(stream, { headers });
 }
+
+const transformUserQueryToKatanaCommand = (lastMessage: Message) => {
+  const answerMessage = endent`
+  Query: "${lastMessage.content}"
+
+  Based on this query, generate a command for the 'katana' tool, focusing on URL crawling and filtering. The command should utilize the most relevant flags, with '-u' or '-list' being essential to specify the target URL or list. Include the '-help' flag if a help guide or a full list of flags is requested. The command should follow this structured format for clarity and accuracy:
+
+  ALWAYS USE THIS FORMAT:
+  \`\`\`json
+  { "command": "katana [flags]" }
+  \`\`\`
+  Replace '[flags]' with the actual flags and values. Include additional flags only if they are specifically relevant to the request. Ensure the command is properly escaped to be valid JSON. 
+
+  Command Construction Guidelines:
+  1. **Selective Flag Use**: Carefully choose flags that are pertinent to the task. The available flags for the 'katana' tool include:
+    - -u, -list: Specify the target URL or list to crawl. (required)
+    - -js-crawl: Enable crawling of JavaScript files. (optional)
+    - -ignore-query-params: Ignore different query parameters in the same path. (optional)
+    - -timeout: Set a time limit in seconds (default 10 seconds). (optional)
+    - -xhr-extraction: Extract XHR request URL and method in JSONL format. (optional)
+    - -crawl-scope: Define in-scope URL regex for crawling. (optional)
+    - -crawl-out-scope: Define out-of-scope URL regex to exclude from crawling. (optional)
+    - -display-out-scope: Show external endpoints from scoped crawling. (optional)
+    - -match-regex: Match output URLs with specified regex patterns. (optional)
+    - -filter-regex: Filter output URLs using regex patterns. (optional)
+    - -extension-match: Match output for specified file extensions. (optional)
+    - -extension-filter: Filter output for specified file extensions. (optional)
+    - -match-condition: Apply DSL-based conditions for matching responses. (optional)
+    - -filter-condition: Apply DSL-based conditions for filtering responses. (optional)
+    - -help: Display help and all available flags. (optional)
+    Use these flags to align with the request's specific requirements or when '-help' is requested for help.
+  2. **Relevance and Efficiency**: Ensure that the selected flags are relevant and contribute to an effective and efficient URL crawling and filtering process.
+
+  Example Commands:
+  For a basic crawl request for 'example.com':
+  \`\`\`json
+  { "command": "katana -u example.com" }
+  \`\`\`
+
+  For a request for help or to see all flags:
+  \`\`\`json
+  { "command": "katana -help" }
+  \`\`\`
+
+  Response:`;
+
+  return answerMessage;
+};
 
 function processurls(outputString: string) {
   return outputString

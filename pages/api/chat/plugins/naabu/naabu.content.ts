@@ -296,9 +296,10 @@ export async function handleNaabuRequest(
     }
 
     try {
-      const jsonMatch = aiResponse.match(/\{[\s\S]*?\}/);
+      const jsonMatch = aiResponse.match(/```json\n\{.*?\}\n```/s);
       if (jsonMatch) {
-        const jsonResponse = JSON.parse(jsonMatch[0]);
+        const jsonResponseString = jsonMatch[0].replace(/```json\n|\n```/g, '');
+        const jsonResponse = JSON.parse(jsonResponseString);
         lastMessage.content = jsonResponse.command;
       } else {
         return new Response(
@@ -321,7 +322,7 @@ export async function handleNaabuRequest(
   }
 
   const parts = lastMessage.content.split(' ');
-  if (parts.includes('-h')) {
+  if (parts.includes('-h') || parts.includes('-help')) {
     return new Response(displayHelpGuide(), {
       status: 200,
       headers: corsHeaders,
@@ -501,42 +502,49 @@ const transformUserQueryToNaabuCommand = (lastMessage: Message) => {
   const answerMessage = endent`
   Query: "${lastMessage.content}"
 
-  Based on this query, generate a command for the 'naabu' tool, focusing on port scanning. The command should use only the most relevant flags, with '-host' being essential. The '-json' flag is optional and should be included only if specified in the user's request.
+  Based on this query, generate a command for the 'naabu' tool, focusing on port scanning. The command should use only the most relevant flags, with '-host' being essential. The '-json' flag is optional and should be included only if specified in the user's request. Include the '-help' flag if a help guide or a full list of flags is requested. The command should follow this structured format for clarity and accuracy:
+
+  ALWAYS USE THIS FORMAT:
+  \`\`\`json
+  { "command": "naabu [flags]" }
+  \`\`\`
+  Replace '[flags]' with the actual flags and values. Include additional flags only if they are specifically relevant to the request. Ensure the command is properly escaped to be valid JSON. 
 
   Command Construction Guidelines for Naabu:
   1. **Selective Flag Use**: Include only the flags that are essential to the request. The available flags for Naabu are:
-    -host string[]: (Required) Hosts to scan ports for.
-    -port string: Ports to scan (e.g., 80,443, 100-200).
-    -top-ports string: Top ports to scan (100, 1000).
-    -exclude-ports string: Ports to exclude from scan.
-    -port-threshold int: Port threshold to skip port scan for the host.
-    -exclude-cdn: Skip full port scans for CDN/WAF.
-    -display-cdn: Display CDN in use.
-    -scan-all-ips: Scan all the IP's associated with a DNS record.
-    -timeout int: seconds to wait before timing out (default 10).
-    -host-discovery: Perform only host discovery.
-    -skip-host-discovery: Skip host discovery.
-    -probe-icmp-echo: ICMP echo request ping.
-    -probe-icmp-timestamp: ICMP timestamp request ping.
-    -probe-icmp-address-mask: ICMP address mask request ping.
-    -arp-ping: ARP ping.
-    -nd-ping: IPv6 Neighbor Discovery ping.
-    -rev-ptr: Reverse PTR lookup.
-    -json: Output in JSON format.
+  - -host string[]: Identifies the target host(s) for port scanning. (required)
+  - -port string: Specify ports to scan (e.g., 80,443, 100-200). (optional)
+  - -top-ports string: Scan top N ports (e.g., 100, 1000). (optional)
+  - -exclude-ports string: Exclude specific ports from the scan. (optional)
+  - -port-threshold int: Set a port threshold to skip port scan for the host. (optional)
+  - -exclude-cdn: Exclude full port scans for CDN/WAF. (optional)
+  - -display-cdn: Display CDN in use. (optional)
+  - -scan-all-ips: Scan all IPs associated with a DNS record. (optional)
+  - -timeout int: Set a timeout limit in seconds (default is 10). (optional)
+  - -host-discovery: Perform only host discovery. (optional)
+  - -skip-host-discovery: Skip host discovery. (optional)
+  - -probe-icmp-echo: Use ICMP echo request ping. (optional)
+  - -probe-icmp-timestamp: Use ICMP timestamp request ping. (optional)
+  - -probe-icmp-address-mask: Use ICMP address mask request ping. (optional)
+  - -arp-ping: Use ARP ping. (optional)
+  - -nd-ping: Use IPv6 Neighbor Discovery ping. (optional)
+  - -rev-ptr: Perform a reverse PTR lookup. (optional)
+  - -json: Output results in JSON format. (optional)
+  - -help: Display help and all available flags. (optional)
+  Use these flags to align with the request's specific requirements or when '-help' is requested for help.
   2. **Relevance and Efficiency**: Ensure that the flags chosen for the command are relevant and contribute to an effective and efficient port discovery process.
 
-  Response:
-  Based on the query, the appropriate Naabu command is:
-  ALWAYS USE THIS FORMAT BELOW:
-  \`\`\`json
-  { "command": "naabu -host [target-host] [additional flags as needed]" }
-  \`\`\`
-  Replace '[target-host]' with the actual host and include any additional flags pertinent to the scanning requirements.
-
-  An example, for a request to scan ports for 'example.com', might be:
+  For example, for a request to scan ports for 'example.com', the command could be:
   \`\`\`json
   { "command": "naabu -host example.com -top-ports 100" }
-  \`\`\``;
+  \`\`\`
+
+  For a request for help or all flags, the command could be:
+  \`\`\`json
+  { "command": "naabu -help" }
+  \`\`\`
+
+  Response:`;
 
   return answerMessage;
 };
