@@ -194,15 +194,17 @@ export async function handleGauRequest(
   corsHeaders: HeadersInit | undefined,
   enableGauFeature: boolean,
   OpenAIStream: {
-    (model: string, messages: Message[], answerMessage: Message): Promise<
-      ReadableStream<any>
-    >;
+    (
+      model: string,
+      messages: Message[],
+      answerMessage: Message,
+    ): Promise<ReadableStream<any>>;
     (arg0: any, arg1: any, arg2: any): any;
   },
   model: string,
   messagesToSend: Message[],
   answerMessage: Message,
-  invokedByToolId: boolean
+  invokedByToolId: boolean,
 ) {
   if (!enableGauFeature) {
     return new Response('The GAU is disabled.', {
@@ -220,7 +222,7 @@ export async function handleGauRequest(
     const openAIResponseStream = await OpenAIStream(
       model,
       messagesToSend,
-      answerMessage
+      answerMessage,
     );
 
     const reader = openAIResponseStream.getReader();
@@ -242,7 +244,7 @@ export async function handleGauRequest(
           {
             status: 200,
             headers: corsHeaders,
-          }
+          },
         );
       }
     } catch (error) {
@@ -251,7 +253,7 @@ export async function handleGauRequest(
         {
           status: 200,
           headers: corsHeaders,
-        }
+        },
       );
     }
   }
@@ -315,7 +317,7 @@ export async function handleGauRequest(
     async start(controller) {
       const sendMessage = (
         data: string,
-        addExtraLineBreaks: boolean = false
+        addExtraLineBreaks: boolean = false,
       ) => {
         const formattedData = addExtraLineBreaks ? `${data}\n\n` : data;
         controller.enqueue(new TextEncoder().encode(formattedData));

@@ -22,8 +22,8 @@ export const VariableModal: FC<Props> = ({
       .map((variable) => ({ key: variable, value: '' }))
       .filter(
         (item, index, array) =>
-          array.findIndex((t) => t.key === item.key) === index
-      )
+          array.findIndex((t) => t.key === item.key) === index,
+      ),
   );
 
   const modalRef = useRef<HTMLDivElement>(null);

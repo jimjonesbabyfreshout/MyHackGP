@@ -97,7 +97,7 @@ type ToolHandlerFunction = (
   model: string,
   messagesToSend: Message[],
   answerMessage: Message,
-  invokedByToolId: boolean
+  invokedByToolId: boolean,
 ) => Promise<any>;
 
 type ToolIdToHandlerMapping = {
@@ -124,7 +124,7 @@ export const handleCommand = async (
   lastMessage: Message,
   model: string,
   messagesToSend: Message[],
-  answerMessage: Message
+  answerMessage: Message,
 ) => {
   const handlerFunction = `handle${capitalize(commandName)}Request`;
   return await commandHandlers[handlerFunction](
@@ -134,6 +134,6 @@ export const handleCommand = async (
     OpenAIStream,
     model,
     messagesToSend,
-    answerMessage
+    answerMessage,
   );
 };

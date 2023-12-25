@@ -118,7 +118,7 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
   };
 
   const helpFlagIndex = args.findIndex(
-    (arg) => arg === '-h' || arg === '-help'
+    (arg) => arg === '-h' || arg === '-help',
   );
   if (helpFlagIndex !== -1) {
     const nextArg = args[helpFlagIndex + 1];
@@ -332,15 +332,17 @@ export async function handleKatanaRequest(
   corsHeaders: HeadersInit | undefined,
   enableKatanaFeature: boolean,
   OpenAIStream: {
-    (model: string, messages: Message[], answerMessage: Message): Promise<
-      ReadableStream<any>
-    >;
+    (
+      model: string,
+      messages: Message[],
+      answerMessage: Message,
+    ): Promise<ReadableStream<any>>;
     (arg0: any, arg1: any, arg2: any): any;
   },
   model: string,
   messagesToSend: Message[],
   answerMessage: Message,
-  invokedByToolId: boolean
+  invokedByToolId: boolean,
 ) {
   if (!enableKatanaFeature) {
     return new Response('The Katana feature is disabled.', {
@@ -358,7 +360,7 @@ export async function handleKatanaRequest(
     const openAIResponseStream = await OpenAIStream(
       model,
       messagesToSend,
-      answerMessage
+      answerMessage,
     );
 
     const reader = openAIResponseStream.getReader();
@@ -380,7 +382,7 @@ export async function handleKatanaRequest(
           {
             status: 200,
             headers: corsHeaders,
-          }
+          },
         );
       }
     } catch (error) {
@@ -389,7 +391,7 @@ export async function handleKatanaRequest(
         {
           status: 200,
           headers: corsHeaders,
-        }
+        },
       );
     }
   }
@@ -463,7 +465,7 @@ export async function handleKatanaRequest(
   }
   if (params.filterCondition) {
     katanaUrl += `&filterCondition=${encodeURIComponent(
-      params.filterCondition
+      params.filterCondition,
     )}`;
   }
   if (params.timeout !== 10) {
@@ -479,7 +481,7 @@ export async function handleKatanaRequest(
     async start(controller) {
       const sendMessage = (
         data: string,
-        addExtraLineBreaks: boolean = false
+        addExtraLineBreaks: boolean = false,
       ) => {
         const formattedData = addExtraLineBreaks ? `${data}\n\n` : data;
         controller.enqueue(new TextEncoder().encode(formattedData));
@@ -529,7 +531,7 @@ export async function handleKatanaRequest(
 
         if (!outputString && outputString.length === 0) {
           const noDataMessage = `🔍 Didn't find anything for ${params.urls.join(
-            ', '
+            ', ',
           )}.`;
           clearInterval(intervalId);
           sendMessage(noDataMessage, true);

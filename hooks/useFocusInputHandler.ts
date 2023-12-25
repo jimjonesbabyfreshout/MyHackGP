@@ -7,7 +7,7 @@ interface FocusHandlerResult {
 }
 
 function useFocusHandler(
-  textareaRef: RefObject<HTMLTextAreaElement>
+  textareaRef: RefObject<HTMLTextAreaElement>,
 ): FocusHandlerResult {
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const menuRef = useRef<HTMLDivElement | null>(null);

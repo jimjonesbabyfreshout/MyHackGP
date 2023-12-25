@@ -128,15 +128,17 @@ export async function handleAlterxRequest(
   corsHeaders: HeadersInit | undefined,
   enableAlterxFeature: boolean,
   OpenAIStream: {
-    (model: string, messages: Message[], answerMessage: Message): Promise<
-      ReadableStream<any>
-    >;
+    (
+      model: string,
+      messages: Message[],
+      answerMessage: Message,
+    ): Promise<ReadableStream<any>>;
     (arg0: any, arg1: any, arg2: any): any;
   },
   model: string,
   messagesToSend: Message[],
   answerMessage: Message,
-  invokedByToolId: boolean
+  invokedByToolId: boolean,
 ) {
   if (!enableAlterxFeature) {
     return new Response('The Alterx is disabled.', {
@@ -154,7 +156,7 @@ export async function handleAlterxRequest(
     const openAIResponseStream = await OpenAIStream(
       model,
       messagesToSend,
-      answerMessage
+      answerMessage,
     );
 
     const reader = openAIResponseStream.getReader();
@@ -176,7 +178,7 @@ export async function handleAlterxRequest(
           {
             status: 200,
             headers: corsHeaders,
-          }
+          },
         );
       }
     } catch (error) {
@@ -185,7 +187,7 @@ export async function handleAlterxRequest(
         {
           status: 200,
           headers: corsHeaders,
-        }
+        },
       );
     }
   }
@@ -260,7 +262,7 @@ export async function handleAlterxRequest(
 
         if (!outputString || outputString.length === 0) {
           const noDataMessage = `🔍 Unable to generate wordlist for "${params.list.join(
-            ', '
+            ', ',
           )}"`;
           clearInterval(intervalId);
           sendMessage(noDataMessage, true);

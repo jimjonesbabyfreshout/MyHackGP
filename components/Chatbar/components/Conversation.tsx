@@ -49,7 +49,7 @@ export const ConversationComponent = ({ conversation }: Props) => {
 
   const handleDragStart = (
     e: DragEvent<HTMLButtonElement>,
-    conversation: Conversation
+    conversation: Conversation,
   ) => {
     if (e.dataTransfer) {
       e.dataTransfer.setData('conversation', JSON.stringify(conversation));

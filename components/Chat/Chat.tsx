@@ -247,7 +247,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                 return updatedConversation;
               }
               return conversation;
-            }
+            },
           );
           if (updatedConversations.length === 0) {
             updatedConversations.push(updatedConversation);
@@ -276,7 +276,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                 return updatedConversation;
               }
               return conversation;
-            }
+            },
           );
           if (updatedConversations.length === 0) {
             updatedConversations.push(updatedConversation);
@@ -295,7 +295,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
       selectedConversation,
       stopConversationRef,
       selectedToolId,
-    ]
+    ],
   );
 
   const { isPremium } = usePremiumStatusContext();
@@ -368,7 +368,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
     throttledScrollDown();
     selectedConversation &&
       setCurrentMessage(
-        selectedConversation.messages[selectedConversation.messages.length - 2]
+        selectedConversation.messages[selectedConversation.messages.length - 2],
       );
   }, [selectedConversation, throttledScrollDown]);
 
@@ -383,7 +383,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
       {
         root: null,
         threshold: 0.5,
-      }
+      },
     );
     const messagesEndElement = messagesEndRef.current;
     if (messagesEndElement) {
@@ -473,7 +473,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                     setCurrentMessage(editedMessage);
                     handleSend(
                       editedMessage,
-                      selectedConversation?.messages.length - index
+                      selectedConversation?.messages.length - index,
                     );
                   }}
                 />

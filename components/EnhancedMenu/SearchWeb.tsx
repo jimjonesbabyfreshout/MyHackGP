@@ -48,7 +48,7 @@ const SearchToggle = () => {
   const handleToggleChange = () => {
     if (selectedToolId && selectedToolId !== SEARCH_TOOL_ID) {
       alert(
-        t('Cannot enable Search Web plugin while another tool is selected.')
+        t('Cannot enable Search Web plugin while another tool is selected.'),
       );
       return;
     }

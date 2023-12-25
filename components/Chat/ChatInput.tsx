@@ -76,7 +76,7 @@ export const ChatInput = ({
   const enhancedMenuDisplayValue = useDisplayAttribute(menuRef);
 
   const filteredPrompts = prompts.filter((prompt) =>
-    prompt.name.toLowerCase().includes(promptInputValue.toLowerCase())
+    prompt.name.toLowerCase().includes(promptInputValue.toLowerCase()),
   );
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -87,8 +87,8 @@ export const ChatInput = ({
       alert(
         t(
           `Message limit is {{maxLength}} characters. You have entered {{valueLength}} characters.`,
-          { maxLength, valueLength: value.length }
-        )
+          { maxLength, valueLength: value.length },
+        ),
       );
       return;
     }
@@ -137,7 +137,7 @@ export const ChatInput = ({
       setContent((prevContent) => {
         const newContent = prevContent?.replace(
           /\/\w*$/,
-          selectedPrompt.content
+          selectedPrompt.content,
         );
         return newContent;
       });
@@ -152,17 +152,17 @@ export const ChatInput = ({
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         setActivePromptIndex((prevIndex) =>
-          prevIndex < prompts.length - 1 ? prevIndex + 1 : prevIndex
+          prevIndex < prompts.length - 1 ? prevIndex + 1 : prevIndex,
         );
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         setActivePromptIndex((prevIndex) =>
-          prevIndex > 0 ? prevIndex - 1 : prevIndex
+          prevIndex > 0 ? prevIndex - 1 : prevIndex,
         );
       } else if (e.key === 'Tab') {
         e.preventDefault();
         setActivePromptIndex((prevIndex) =>
-          prevIndex < prompts.length - 1 ? prevIndex + 1 : 0
+          prevIndex < prompts.length - 1 ? prevIndex + 1 : 0,
         );
       } else if (e.key === 'Enter') {
         e.preventDefault();

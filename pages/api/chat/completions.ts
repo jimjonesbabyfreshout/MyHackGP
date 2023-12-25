@@ -52,12 +52,12 @@ const handler = async (req: Request): Promise<Response> => {
     const providedKeys = Object.keys(chatBody);
 
     const unrecognizedKeys = providedKeys.filter(
-      (key) => !allowedKeys.includes(key)
+      (key) => !allowedKeys.includes(key),
     );
     if (unrecognizedKeys.length > 0) {
       return new Response(
         `Unrecognized parameters: ${unrecognizedKeys.join(', ')}`,
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers: corsHeaders },
       );
     }
 
@@ -68,7 +68,7 @@ const handler = async (req: Request): Promise<Response> => {
     ) {
       return new Response(
         'The "model" and "messages" parameters are required and cannot be empty',
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers: corsHeaders },
       );
     }
 
@@ -82,12 +82,12 @@ const handler = async (req: Request): Promise<Response> => {
     if (stream !== true && stream !== false) {
       return new Response(
         'The "stream" parameter must be a boolean (true or false)',
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers: corsHeaders },
       );
     }
 
     const defaultTemperature = parseFloat(
-      process.env.HACKERGPT_MODEL_TEMPERATURE || '0.4'
+      process.env.HACKERGPT_MODEL_TEMPERATURE || '0.4',
     );
     const temp = temperature ?? defaultTemperature;
 
@@ -97,7 +97,7 @@ const handler = async (req: Request): Promise<Response> => {
     ) {
       return new Response(
         'The "temperature" parameter must be a number between 0 and 2',
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers: corsHeaders },
       );
     }
 
@@ -107,7 +107,7 @@ const handler = async (req: Request): Promise<Response> => {
     ) {
       return new Response(
         'The "max_tokens" parameter must be a number between 1 and 2000',
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers: corsHeaders },
       );
     }
 
@@ -115,7 +115,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (!tokenLimit) {
       return new Response(
         'Error: Model not found. Only "hackergpt" model is supported',
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers: corsHeaders },
       );
     }
 
@@ -125,7 +125,7 @@ const handler = async (req: Request): Promise<Response> => {
     const encoding = new Tiktoken(
       tiktokenModel.bpe_ranks,
       tiktokenModel.special_tokens,
-      tiktokenModel.pat_str
+      tiktokenModel.pat_str,
     );
 
     const promptToSend = () => {
@@ -174,7 +174,7 @@ const handler = async (req: Request): Promise<Response> => {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({ model: model }),
-          }
+          },
         );
 
         userStatusOk = response.ok;
@@ -200,7 +200,7 @@ const handler = async (req: Request): Promise<Response> => {
           messagesToSend,
           temp,
           max_tokens,
-          stream
+          stream,
         );
       }
 

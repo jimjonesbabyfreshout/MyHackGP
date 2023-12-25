@@ -52,7 +52,7 @@ export const PluginSelect = () => {
   };
 
   const [selectedModel, setSelectedModel] = useState(
-    selectedConversation?.model?.id || defaultModelId
+    selectedConversation?.model?.id || defaultModelId,
   );
 
   return (
@@ -63,7 +63,7 @@ export const PluginSelect = () => {
           value={selectedModel}
           onChange={(e) => {
             const modelName = models.find(
-              (model) => model.id === e.target.value
+              (model) => model.id === e.target.value,
             )?.name;
             if (modelName) {
               handleModuleClick(modelName);

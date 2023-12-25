@@ -17,7 +17,7 @@ export const getPremiumStatus = async (app: FirebaseApp) => {
   const subscriptionsRef = collection(db, 'customers', userId, 'subscriptions');
   const q = query(
     subscriptionsRef,
-    where('status', 'in', ['trialing', 'active'])
+    where('status', 'in', ['trialing', 'active']),
   );
 
   return new Promise<boolean>((resolve, reject) => {
@@ -31,7 +31,7 @@ export const getPremiumStatus = async (app: FirebaseApp) => {
         }
         unsubscribe();
       },
-      reject
+      reject,
     );
   });
 };

@@ -59,7 +59,7 @@ export const Chatbar = () => {
 
   const handleDeleteConversation = (conversation: Conversation) => {
     const updatedConversations = conversations.filter(
-      (c) => c.id !== conversation.id
+      (c) => c.id !== conversation.id,
     );
 
     homeDispatch({ field: 'conversations', value: updatedConversations });

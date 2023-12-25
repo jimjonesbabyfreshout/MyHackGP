@@ -86,7 +86,7 @@ export const ModelSelect = () => {
   };
 
   const [selectedModel, setSelectedModel] = useState<string | undefined>(
-    selectedConversation?.model?.id || defaultModelId
+    selectedConversation?.model?.id || defaultModelId,
   );
 
   return (

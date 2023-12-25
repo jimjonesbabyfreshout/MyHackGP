@@ -165,15 +165,17 @@ export async function handleSubfinderRequest(
   corsHeaders: HeadersInit | undefined,
   enableSubfinderFeature: boolean,
   OpenAIStream: {
-    (model: string, messages: Message[], answerMessage: Message): Promise<
-      ReadableStream<any>
-    >;
+    (
+      model: string,
+      messages: Message[],
+      answerMessage: Message,
+    ): Promise<ReadableStream<any>>;
     (arg0: any, arg1: any, arg2: any): any;
   },
   model: string,
   messagesToSend: Message[],
   answerMessage: Message,
-  invokedByToolId: boolean
+  invokedByToolId: boolean,
 ) {
   if (!enableSubfinderFeature) {
     return new Response('The Subfinder is disabled.', {
@@ -191,7 +193,7 @@ export async function handleSubfinderRequest(
     const openAIResponseStream = await OpenAIStream(
       model,
       messagesToSend,
-      answerMessage
+      answerMessage,
     );
 
     const reader = openAIResponseStream.getReader();
@@ -213,7 +215,7 @@ export async function handleSubfinderRequest(
           {
             status: 200,
             headers: corsHeaders,
-          }
+          },
         );
       }
     } catch (error) {
@@ -222,7 +224,7 @@ export async function handleSubfinderRequest(
         {
           status: 200,
           headers: corsHeaders,
-        }
+        },
       );
     }
   }
@@ -274,7 +276,7 @@ export async function handleSubfinderRequest(
     async start(controller) {
       const sendMessage = (
         data: string,
-        addExtraLineBreaks: boolean = false
+        addExtraLineBreaks: boolean = false,
       ) => {
         const formattedData = addExtraLineBreaks ? `${data}\n\n` : data;
         controller.enqueue(new TextEncoder().encode(formattedData));
@@ -305,7 +307,7 @@ export async function handleSubfinderRequest(
 
         if (!subfinderData || subfinderData.length === 0) {
           const noDataMessage = `🔍 Alright, I've looked into "${params.domain.join(
-            ', '
+            ', ',
           )}" based on your command: "${
             lastMessage.content
           }". Turns out, there are no subdomains to report back on this time.`;
@@ -324,7 +326,7 @@ export async function handleSubfinderRequest(
         if (params.outputJson) {
           const responseString = createResponseString(
             params.domain,
-            subfinderData
+            subfinderData,
           );
           sendMessage(responseString, true);
           controller.close();
@@ -337,7 +339,7 @@ export async function handleSubfinderRequest(
         if (params.includeSources) {
           const responseString = createResponseString(
             params.domain,
-            extractHostsAndSourcesFromData(subfinderData)
+            extractHostsAndSourcesFromData(subfinderData),
           );
           sendMessage(responseString, true);
           controller.close();
@@ -349,21 +351,21 @@ export async function handleSubfinderRequest(
 
         const responseString = createResponseString(
           params.domain,
-          extractHostsFromSubfinderData(subfinderData)
+          extractHostsFromSubfinderData(subfinderData),
         );
         sendMessage(responseString, true);
 
         if (params.outputVerbose) {
           const answerPrompt = createAnswerPromptSubfinder(
             params.domain.join(', '),
-            extractHostsFromSubfinderData(subfinderData)
+            extractHostsFromSubfinderData(subfinderData),
           );
           answerMessage.content = answerPrompt;
 
           const openAIResponseStream = await OpenAIStream(
             model,
             messagesToSend,
-            answerMessage
+            answerMessage,
           );
           const reader = openAIResponseStream.getReader();
 
@@ -489,7 +491,7 @@ const extractHostsAndSourcesFromData = (data: string) => {
 
 const createResponseString = (
   domain: string | string[],
-  subfinderData: string
+  subfinderData: string,
 ) => {
   const date = new Date();
   const timezone = 'UTC-5';

@@ -12,7 +12,7 @@ export const useFetch = () => {
   const handleFetch = async (
     url: string,
     request: any,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => {
     const requestUrl = request?.params ? `${url}${request.params}` : url;
 
@@ -26,8 +26,8 @@ export const useFetch = () => {
       ...(request?.headers
         ? request.headers
         : request?.body && request.body instanceof FormData
-        ? {}
-        : { 'Content-type': 'application/json' }),
+          ? {}
+          : { 'Content-type': 'application/json' }),
     };
 
     return fetch(requestUrl, { ...requestBody, headers, signal })
@@ -45,8 +45,8 @@ export const useFetch = () => {
             contentType?.indexOf('text/plain') !== -1)
             ? response.json()
             : contentDisposition?.indexOf('attachment') !== -1
-            ? response.blob()
-            : response;
+              ? response.blob()
+              : response;
 
         return result;
       })
@@ -68,7 +68,7 @@ export const useFetch = () => {
     },
     post: async <T>(
       url: string,
-      request?: RequestWithBodyModel
+      request?: RequestWithBodyModel,
     ): Promise<T> => {
       return handleFetch(url, { ...request, method: 'post' });
     },
@@ -77,7 +77,7 @@ export const useFetch = () => {
     },
     patch: async <T>(
       url: string,
-      request?: RequestWithBodyModel
+      request?: RequestWithBodyModel,
     ): Promise<T> => {
       return handleFetch(url, { ...request, method: 'patch' });
     },

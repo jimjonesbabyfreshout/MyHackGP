@@ -10,7 +10,7 @@ import {
 
 export function replaceWordsInLastUserMessage(
   messages: string | any[],
-  replacements: { [s: string]: unknown } | ArrayLike<unknown>
+  replacements: { [s: string]: unknown } | ArrayLike<unknown>,
 ) {
   const lastUserMessageIndex = messages.length - 1;
   for (let i = lastUserMessageIndex; i >= 0; i--) {
@@ -40,7 +40,7 @@ export const HackerGPTStream = async (
   messages: Message[],
   modelTemperature: number,
   maxTokens: number,
-  enableStream: boolean
+  enableStream: boolean,
 ) => {
   const openAIUrl = `https://api.openai.com/v1/chat/completions`;
   const openAIHeaders = {
@@ -61,11 +61,11 @@ export const HackerGPTStream = async (
   const usePinecone = process.env.USE_PINECONE === 'TRUE';
   const MIN_LAST_MESSAGE_LENGTH = parseInt(
     process.env.MIN_LAST_MESSAGE_LENGTH || '50',
-    10
+    10,
   );
   const MAX_LAST_MESSAGE_LENGTH = parseInt(
     process.env.MAX_LAST_MESSAGE_LENGTH || '1000',
-    10
+    10,
   );
   const pineconeTemperature =
     parseFloat(process.env.PINECONE_MODEL_TEMPERATURE ?? '0.7') || 0.7;
@@ -81,7 +81,7 @@ export const HackerGPTStream = async (
       typeof nextMessage.role === 'undefined'
     ) {
       console.error(
-        'One of the messages is undefined or does not have a role property'
+        'One of the messages is undefined or does not have a role property',
       );
       continue;
     }
@@ -104,7 +104,7 @@ export const HackerGPTStream = async (
   if (
     messages[messages.length - 1].role === 'user' &&
     !messages[messages.length - 1].content.includes(
-      MESSAGE_USAGE_CAP_WARNING
+      MESSAGE_USAGE_CAP_WARNING,
     ) &&
     (cleanedMessages.length === 0 ||
       cleanedMessages[cleanedMessages.length - 1].role !== 'user')
@@ -158,7 +158,7 @@ export const HackerGPTStream = async (
       }
 
       const filteredMatches = matches.filter(
-        (match: { score: number }) => match.score > 0.8
+        (match: { score: number }) => match.score > 0.8,
       );
 
       if (filteredMatches.length > 0) {
@@ -370,7 +370,7 @@ export const HackerGPTStream = async (
 
     const words = text.toLowerCase().split(/\s+/);
     const relevantWordCount = words.filter((word) =>
-      combinedEnglishAndCybersecurityWords.has(word)
+      combinedEnglishAndCybersecurityWords.has(word),
     ).length;
     return relevantWordCount / words.length >= threshold / 100;
   };
@@ -392,9 +392,8 @@ export const HackerGPTStream = async (
         lastMessageContent = translatedContent;
       }
 
-      const pineconeResults = await queryPineconeVectorStore(
-        lastMessageContent
-      );
+      const pineconeResults =
+        await queryPineconeVectorStore(lastMessageContent);
 
       if (pineconeResults !== 'None') {
         modelTemperature = pineconeTemperature;
@@ -447,7 +446,7 @@ export const HackerGPTStream = async (
         result.error.message,
         result.error.type,
         result.error.param,
-        result.error.code
+        result.error.code,
       );
     } else {
       throw new Error(`OpenAI API returned an error: ${result.statusText}`);
@@ -457,7 +456,7 @@ export const HackerGPTStream = async (
   if (!enableStream) {
     const data = await res.json();
     const messages = data.choices.map(
-      (choice: { message: { content: any } }) => choice.message.content
+      (choice: { message: { content: any } }) => choice.message.content,
     );
     return messages.join('\n');
   }

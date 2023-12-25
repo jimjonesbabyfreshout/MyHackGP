@@ -47,7 +47,7 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
   const router = useRouter();
   const [isPremium, setIsPremium] = useState(false);
   const [preFetchedPortalUrl, setPreFetchedPortalUrl] = useState<string | null>(
-    null
+    null,
   );
   const app = initFirebaseApp();
   const auth = getAuth(app);
@@ -134,7 +134,7 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
         setCreateErrorMessage('Failed to create key: ' + error.message);
       } else {
         setCreateErrorMessage(
-          'Failed to create key: An unknown error occurred'
+          'Failed to create key: An unknown error occurred',
         );
       }
     } finally {
@@ -194,7 +194,7 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
         setRevokeErrorMessage('Failed to delete key: ' + error.message);
       } else {
         setRevokeErrorMessage(
-          'Failed to delete key: An unknown error occurred'
+          'Failed to delete key: An unknown error occurred',
         );
       }
       setIsRevokeButtonDisabled(false);
@@ -232,7 +232,7 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
           setFetchingUserApiKey(false);
         } catch (parseError) {
           console.error(
-            `Error fetching user API keys:, status code: ${response.status}`
+            `Error fetching user API keys:, status code: ${response.status}`,
           );
           setFetchingUserApiKey(false);
         }
@@ -335,7 +335,7 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
 
   const handleRevokeClick = (
     apiKey: SetStateAction<string>,
-    censoredKey: string
+    censoredKey: string,
   ) => {
     setApiKeyToRevoke(apiKey);
     setcensoredKeyApiKeyToRevoke(censoredKey);
@@ -535,14 +535,14 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
                                     <td className="whitespace-nowrap px-4 py-4 text-sm text-black dark:text-white">
                                       {key.created
                                         ? new Date(
-                                            key.created
+                                            key.created,
                                           ).toLocaleDateString()
                                         : 'Never'}
                                     </td>
                                     <td className="whitespace-nowrap px-6 py-4 text-sm text-black dark:text-white">
                                       {key.lastUsed
                                         ? new Date(
-                                            key.lastUsed
+                                            key.lastUsed,
                                           ).toLocaleDateString()
                                         : 'Never'}
                                     </td>
@@ -551,7 +551,7 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
                                         onClick={() =>
                                           handleRevokeClick(
                                             key.id,
-                                            key.censoredKey
+                                            key.censoredKey,
                                           )
                                         }
                                         className="text-black hover:text-hgpt-chat-gray dark:text-white dark:hover:text-hgpt-hover-white"

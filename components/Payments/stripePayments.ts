@@ -25,7 +25,7 @@ export const getCheckoutUrl = async (app: FirebaseApp): Promise<string> => {
     db,
     'customers',
     userId,
-    'checkout_sessions'
+    'checkout_sessions',
   );
 
   let resolved = false;
@@ -65,7 +65,7 @@ export const getPortalUrl = async (app: FirebaseApp): Promise<string> => {
     const functions = getFunctions(app, 'us-central1');
     const functionRef = httpsCallable(
       functions,
-      'ext-firestore-stripe-payments-createPortalLink'
+      'ext-firestore-stripe-payments-createPortalLink',
     );
     const response = await functionRef({
       customerId: userId,
