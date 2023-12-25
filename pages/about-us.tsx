@@ -62,14 +62,14 @@ const AboutUs = () => {
             <h3 className="mb-4 text-2xl font-semibold">
               What Makes HackerGPT Special?
             </h3>
-            <p className="mb-4 text-lg">
+       {/*     <p className="mb-4 text-lg">
               HackerGPT isn&apos;t just an AI that can answer your hacking
               questions; it actually can hack with you using popular open-source
               hacking tools. To see all the tools you can use with HackerGPT,
               type <code>/tools</code>. If you want a quick guide on using a
               specific tool, like Subfinder, just type{' '}
               <code>/subfinder -h</code>.
-            </p>
+            </p> */}
             <p className="mb-4 text-lg">
               Below are some of the notable tools available with HackerGPT:
             </p>
@@ -113,11 +113,11 @@ const AboutUs = () => {
               </li>
             </ul>
             <p className="mb-4 text-lg">
-              <p className="mb-4 text-lg">
                 Oh, and yes, you can effortlessly use these tools without typing
                 complex commands — simply select the tool you want and describe
                 in your own words what you need to do.
               </p>
+            <p className="mb-4 text-lg">
               Along with these, there are more tools available with HackerGPT.
             </p>
           </div>
