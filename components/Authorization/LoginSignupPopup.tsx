@@ -77,7 +77,7 @@ const LoginSignupPopup: React.FC<Parameters> = ({ isOpen, onClose }) => {
           break;
         case 'auth/network-request-failed':
           setEmailError(
-            'Network error. Please check your internet connection and try again.'
+            'Network error. Please check your internet connection and try again.',
           );
           break;
         default:

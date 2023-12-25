@@ -2,7 +2,7 @@ import { Conversation } from '@/types/chat';
 
 export const updateConversation = (
   updatedConversation: Conversation,
-  allConversations: Conversation[]
+  allConversations: Conversation[],
 ) => {
   const updatedConversations = allConversations.map((c) => {
     if (c.id === updatedConversation.id) {
@@ -31,7 +31,7 @@ export const saveConversation = (conversation: Conversation) => {
     ) {
       // Quota exceeded error indicates that localStorage is full
       console.error(
-        'LocalStorage quota exceeded. Clearing selected conversation...'
+        'LocalStorage quota exceeded. Clearing selected conversation...',
       );
       // Remove only the selected conversation from localStorage
       localStorage.removeItem('selectedConversation');
@@ -53,7 +53,7 @@ export const saveConversations = (conversations: Conversation[]) => {
     ) {
       // Quota exceeded error indicates that localStorage is full
       console.error(
-        'LocalStorage quota exceeded. Clearing conversation history...'
+        'LocalStorage quota exceeded. Clearing conversation history...',
       );
       // Remove only the conversations from localStorage
       localStorage.removeItem('conversationHistory');

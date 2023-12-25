@@ -291,7 +291,7 @@ const UpgradeToPremiumPopup: React.FC<Props> = ({
                 </div>
               </div>
             </div>,
-            document.getElementById('__next') as HTMLElement
+            document.getElementById('__next') as HTMLElement,
           )
         : null}
     </>

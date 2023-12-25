@@ -113,11 +113,11 @@ const AboutUs = () => {
               </li>
             </ul>
             <p className="mb-4 text-lg">
-              <p className="mb-4 text-lg">
-                Oh, and yes, you can effortlessly use these tools without typing
-                complex commands — simply select the tool you want and describe
-                in your own words what you need to do.
-              </p>
+              Oh, and yes, you can effortlessly use these tools without typing
+              complex commands — simply select the tool you want and describe in
+              your own words what you need to do.
+            </p>
+            <p className="mb-4 text-lg">
               Along with these, there are more tools available with HackerGPT.
             </p>
           </div>

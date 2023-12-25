@@ -171,8 +171,8 @@ const parseGauCommandLine = (input: string): GauParams => {
           }
           break;
         default:
-          params.error = `🚨 Invalid or unrecognized flag: ${args[i]}`;
-          return params;
+          params.error = `🚨 Invalid flag provided`;
+          break;
       }
     } catch (error) {
       if (error instanceof Error) {
@@ -194,9 +194,11 @@ export async function handleGauRequest(
   corsHeaders: HeadersInit | undefined,
   enableGauFeature: boolean,
   OpenAIStream: {
-    (model: string, messages: Message[], answerMessage: Message): Promise<
-      ReadableStream<any>
-    >;
+    (
+      model: string,
+      messages: Message[],
+      answerMessage: Message,
+    ): Promise<ReadableStream<any>>;
     (arg0: any, arg1: any, arg2: any): any;
   },
   model: string,
@@ -315,7 +317,7 @@ export async function handleGauRequest(
     async start(controller) {
       const sendMessage = (
         data: string,
-        addExtraLineBreaks: boolean = false
+        addExtraLineBreaks: boolean = false,
       ) => {
         const formattedData = addExtraLineBreaks ? `${data}\n\n` : data;
         controller.enqueue(new TextEncoder().encode(formattedData));

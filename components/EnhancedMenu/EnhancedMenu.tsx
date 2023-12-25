@@ -69,7 +69,7 @@ const EnhancedMenu = forwardRef<HTMLDivElement, EnhancedMenuProps>(
         </div>
       </div>
     );
-  }
+  },
 );
 
 EnhancedMenu.propTypes = {

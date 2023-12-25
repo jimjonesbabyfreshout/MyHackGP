@@ -1,7 +1,7 @@
 import { MutableRefObject, useEffect, useState } from 'react';
 
 const useDisplayAttribute = <T extends HTMLElement>(
-  elementRef: MutableRefObject<T | null>
+  elementRef: MutableRefObject<T | null>,
 ): string | undefined => {
   const [displayValue, setDisplayValue] = useState<string>();
 

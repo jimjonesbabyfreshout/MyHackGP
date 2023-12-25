@@ -36,11 +36,11 @@ export const CodeBlock: FC<Props> = memo(({ language, value }) => {
     const fileExtension = programmingLanguages[language] || '.file';
     const suggestedFileName = `file-${generateRandomString(
       3,
-      true
+      true,
     )}${fileExtension}`;
     const fileName = window.prompt(
       t('Enter file name') || '',
-      suggestedFileName
+      suggestedFileName,
     );
 
     if (!fileName) {

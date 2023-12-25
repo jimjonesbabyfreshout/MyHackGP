@@ -128,9 +128,11 @@ export async function handleAlterxRequest(
   corsHeaders: HeadersInit | undefined,
   enableAlterxFeature: boolean,
   OpenAIStream: {
-    (model: string, messages: Message[], answerMessage: Message): Promise<
-      ReadableStream<any>
-    >;
+    (
+      model: string,
+      messages: Message[],
+      answerMessage: Message,
+    ): Promise<ReadableStream<any>>;
     (arg0: any, arg1: any, arg2: any): any;
   },
   model: string,
@@ -260,7 +262,7 @@ export async function handleAlterxRequest(
 
         if (!outputString || outputString.length === 0) {
           const noDataMessage = `🔍 Unable to generate wordlist for "${params.list.join(
-            ', '
+            ', ',
           )}"`;
           clearInterval(intervalId);
           sendMessage(noDataMessage, true);

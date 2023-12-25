@@ -28,7 +28,7 @@ export const OpenAIStream = async (
   model: OpenAIModel['id'],
   messages: Message[],
   answerMessage: Message,
-  toolId?: string | null | undefined
+  toolId?: string | null | undefined,
 ) => {
   const SYSTEM_PROMPT = process.env.SECRET_OPENAI_SYSTEM_PROMPT;
   const GOOGLE_SEARCH_SYSTEM_PROMPT =
@@ -102,7 +102,7 @@ export const OpenAIStream = async (
         result.error.message,
         result.error.type,
         result.error.param,
-        result.error.code
+        result.error.code,
       );
     } else {
       throw new Error(`OpenAI API returned an error: ${result.statusText}`);

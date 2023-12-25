@@ -36,7 +36,7 @@ const ToolSelector = () => {
 
     if (selectedToolId === ToolID.WEBSEARCH) {
       alert(
-        t('Please disable Search Web plugin before selecting another tool.')
+        t('Please disable Search Web plugin before selecting another tool.'),
       );
       return;
     }

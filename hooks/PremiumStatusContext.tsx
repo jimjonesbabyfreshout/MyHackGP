@@ -34,7 +34,7 @@ export const usePremiumStatusContext = () => {
   const context = useContext(PremiumStatusContext);
   if (context === undefined) {
     throw new Error(
-      'usePremiumStatusContext must be used within a PremiumStatusProvider'
+      'usePremiumStatusContext must be used within a PremiumStatusProvider',
     );
   }
   return context;

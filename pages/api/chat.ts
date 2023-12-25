@@ -83,7 +83,7 @@ const handler = async (req: Request): Promise<Response> => {
     const encoding = new Tiktoken(
       tiktokenModel.bpe_ranks,
       tiktokenModel.special_tokens,
-      tiktokenModel.pat_str
+      tiktokenModel.pat_str,
     );
 
     const promptToSend = () => {
@@ -140,7 +140,7 @@ const handler = async (req: Request): Promise<Response> => {
           body: JSON.stringify({
             model: model,
           }),
-        }
+        },
       );
 
       userStatusOk = response.ok;
@@ -155,7 +155,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (!useWebBrowsingPlugin) {
         return new Response(
           'The Web Browsing Plugin is disabled. To enable it, please configure the necessary environment variables.',
-          { status: 200, headers: corsHeaders }
+          { status: 200, headers: corsHeaders },
         );
       }
 
@@ -164,7 +164,7 @@ const handler = async (req: Request): Promise<Response> => {
       const sourceTexts = await processGoogleResults(
         googleData,
         tokenLimit,
-        tokenCount
+        tokenCount,
       );
 
       const answerPrompt = createAnswerPromptGoogle(query, sourceTexts);
@@ -195,7 +195,7 @@ const handler = async (req: Request): Promise<Response> => {
               const toolUrl = toolUrls[tool];
               return new Response(
                 `You can access [${tool}](${toolUrl}) only with GPT-4.`,
-                { status: 200, headers: corsHeaders }
+                { status: 200, headers: corsHeaders },
               );
             }
             return await handleCommand(
@@ -203,7 +203,7 @@ const handler = async (req: Request): Promise<Response> => {
               lastMessage,
               model,
               messagesToSend,
-              answerMessage
+              answerMessage,
             );
           }
         }
@@ -219,7 +219,7 @@ const handler = async (req: Request): Promise<Response> => {
           model,
           messagesToSend,
           answerMessage,
-          invokedByToolId
+          invokedByToolId,
         );
 
         return response;
@@ -231,14 +231,14 @@ const handler = async (req: Request): Promise<Response> => {
           messagesToSend,
           temperature,
           max_tokens,
-          stream
+          stream,
         );
       } else {
         streamResult = await OpenAIStream(
           model,
           messagesToSend,
           answerMessage,
-          toolId
+          toolId,
         );
       }
 

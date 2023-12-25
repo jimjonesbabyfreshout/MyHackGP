@@ -247,7 +247,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                 return updatedConversation;
               }
               return conversation;
-            }
+            },
           );
           if (updatedConversations.length === 0) {
             updatedConversations.push(updatedConversation);
@@ -276,7 +276,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                 return updatedConversation;
               }
               return conversation;
-            }
+            },
           );
           if (updatedConversations.length === 0) {
             updatedConversations.push(updatedConversation);
@@ -295,7 +295,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
       selectedConversation,
       stopConversationRef,
       selectedToolId,
-    ]
+    ],
   );
 
   const { isPremium } = usePremiumStatusContext();
@@ -368,7 +368,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
     throttledScrollDown();
     selectedConversation &&
       setCurrentMessage(
-        selectedConversation.messages[selectedConversation.messages.length - 2]
+        selectedConversation.messages[selectedConversation.messages.length - 2],
       );
   }, [selectedConversation, throttledScrollDown]);
 
@@ -383,7 +383,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
       {
         root: null,
         threshold: 0.5,
-      }
+      },
     );
     const messagesEndElement = messagesEndRef.current;
     if (messagesEndElement) {
@@ -412,7 +412,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                 <div className="z-10">
                   {models.length > 0 && <ModelSelect />}
                 </div>
-                <div className="absolute inset-x-0 top-28 mb-10 ml-auto mr-auto flex flex flex flex-grow items-center items-center justify-center justify-center gap-2 text-center text-4xl font-semibold text-gray-200 dark:text-gray-600 sm:mb-16">
+                <div className="absolute inset-x-0 top-28 mb-10 ml-auto mr-auto flex flex flex flex-grow items-center items-center justify-center justify-center gap-2 text-center text-4xl font-semibold text-gray-200 sm:mb-16 dark:text-gray-600">
                   {models.length === 0 ? (
                     <div>
                       <Spinner size="18px" className="mx-auto" />
@@ -432,7 +432,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
             </>
           ) : (
             <>
-              <div className="sticky top-0 z-10 flex flex-1 flex-grow items-center justify-center gap-2 border border-b-neutral-300 bg-neutral-100 py-5 text-sm text-neutral-500 dark:border-none dark:bg-hgpt-light-gray dark:text-neutral-200 sm:justify-center">
+              <div className="sticky top-0 z-10 flex flex-1 flex-grow items-center justify-center gap-2 border border-b-neutral-300 bg-neutral-100 py-5 text-sm text-neutral-500 sm:justify-center dark:border-none dark:bg-hgpt-light-gray dark:text-neutral-200">
                 {model && (
                   <>
                     {model.name === 'HackerGPT' ? (
@@ -473,7 +473,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                     setCurrentMessage(editedMessage);
                     handleSend(
                       editedMessage,
-                      selectedConversation?.messages.length - index
+                      selectedConversation?.messages.length - index,
                     );
                   }}
                 />

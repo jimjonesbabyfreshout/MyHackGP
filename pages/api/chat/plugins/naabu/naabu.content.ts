@@ -107,7 +107,7 @@ const parseNaabuCommandLine = (input: string): NaabuParams => {
   const isValidHostnameOrIP = (value: string) => {
     return (
       /^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$/.test(
-        value
+        value,
       ) || /^(\d{1,3}\.){3}\d{1,3}$/.test(value)
     );
   };
@@ -117,7 +117,7 @@ const parseNaabuCommandLine = (input: string): NaabuParams => {
       const range = p.split('-');
       return range.every(
         (r) =>
-          /^\d+$/.test(r) && parseInt(r, 10) >= 1 && parseInt(r, 10) <= 65535
+          /^\d+$/.test(r) && parseInt(r, 10) >= 1 && parseInt(r, 10) <= 65535,
       );
     });
   };
@@ -259,15 +259,17 @@ export async function handleNaabuRequest(
   corsHeaders: HeadersInit | undefined,
   enableNaabuFeature: boolean,
   OpenAIStream: {
-    (model: string, messages: Message[], answerMessage: Message): Promise<
-      ReadableStream<any>
-    >;
+    (
+      model: string,
+      messages: Message[],
+      answerMessage: Message,
+    ): Promise<ReadableStream<any>>;
     (arg0: any, arg1: any, arg2: any): any;
   },
   model: string,
   messagesToSend: Message[],
   answerMessage: Message,
-  invokedByToolId: boolean
+  invokedByToolId: boolean,
 ) {
   if (!enableNaabuFeature) {
     return new Response('The Naabu feature is disabled.', {
@@ -285,7 +287,7 @@ export async function handleNaabuRequest(
     const openAIResponseStream = await OpenAIStream(
       model,
       messagesToSend,
-      answerMessage
+      answerMessage,
     );
 
     const reader = openAIResponseStream.getReader();
@@ -307,7 +309,7 @@ export async function handleNaabuRequest(
           {
             status: 200,
             headers: corsHeaders,
-          }
+          },
         );
       }
     } catch (error) {
@@ -316,7 +318,7 @@ export async function handleNaabuRequest(
         {
           status: 200,
           headers: corsHeaders,
-        }
+        },
       );
     }
   }
@@ -411,7 +413,7 @@ export async function handleNaabuRequest(
     async start(controller) {
       const sendMessage = (
         data: string,
-        addExtraLineBreaks: boolean = false
+        addExtraLineBreaks: boolean = false,
       ) => {
         const formattedData = addExtraLineBreaks ? `${data}\n\n` : data;
         controller.enqueue(new TextEncoder().encode(formattedData));
