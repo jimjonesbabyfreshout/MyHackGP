@@ -7,9 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "format": "prettier --write .",
-    "test": "vitest",
-    "coverage": "vitest run --coverage"
+    "format": "prettier --write ."
   },
   "dependencies": {
     "@babel/traverse": "^7.23.2",
