@@ -70,7 +70,7 @@ export const ChatInput = ({
   const [variables, setVariables] = useState<string[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [plugin, setPlugin] = useState<Plugin | null>(null);
-  const [showEnhanceMenu, setShowEnhanceMenu] = useState(false);
+  const [showEnhanceMenu, setShowEnhanceMenu] = useState(true);
 
   const toggleEnhanceMenu = () => {
     setShowEnhanceMenu(!showEnhanceMenu);
