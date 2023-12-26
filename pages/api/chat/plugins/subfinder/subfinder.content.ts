@@ -49,15 +49,8 @@ interface SubfinderParams {
 
 const parseCommandLine = (input: string) => {
   const MAX_INPUT_LENGTH = 500;
-  const maxDomainLength = 100;
+  const maxDomainLength = 255;
   const maxSubdomainLength = 100;
-
-  if (input.length > MAX_INPUT_LENGTH) {
-    return { error: 'Input command is too long' } as SubfinderParams;
-  }
-
-  const args = input.split(' ');
-  args.shift();
 
   const params: SubfinderParams = {
     domain: [],
@@ -70,6 +63,14 @@ const parseCommandLine = (input: string) => {
     outputVerbose: false,
     error: null,
   };
+
+  if (input.length > MAX_INPUT_LENGTH) {
+    params.error = `🚨 Input command is too long`;
+    return params;
+  }
+
+  const args = input.split(' ');
+  args.shift();
 
   const isInteger = (value: string) => /^[0-9]+$/.test(value);
   const isValidDomain = (domain: string) =>
@@ -410,36 +411,38 @@ const transformUserQueryToSubfinderCommand = (lastMessage: Message) => {
   const answerMessage = endent`
   Query: "${lastMessage.content}"
 
-  Based on this query, generate a command for the 'subfinder' tool, focusing on subdomain discovery. The command should use only the most relevant flags, with '-domain' being essential. The '-json' flag is optional and should be included only if specified in the user's request. Include the '-help' flag if a help guide or a full list of flags is requested. The command should follow this structured format for clarity and accuracy:
+  Based on this query, generate a command for the 'subfinder' tool, focusing on subdomain discovery. The command should use only the most relevant flags, with '-domain' being essential. If the request involves discovering subdomains for a specific domain, embed the domain directly in the command rather than referencing an external file. The '-json' flag is optional and should be included only if specified in the user's request. Include the '-help' flag if a help guide or a full list of flags is requested. The command should follow this structured format for clarity and accuracy:
   
   ALWAYS USE THIS FORMAT:
   \`\`\`json
   { "command": "subfinder -domain [domain] [additional flags as needed]" }
   \`\`\`
-  Replace '[domain]' with the actual domain name. Include any of the additional flags only if they align with the specifics of the request. Ensure the command is properly escaped to be valid JSON.
+  Replace '[domain]' with the actual domain name and directly include it in the command. Include any of the additional flags only if they align with the specifics of the request. Ensure the command is properly escaped to be valid JSON.
 
   Command Construction Guidelines:
-  1. **Selective Flag Use**: Carefully select flags that are directly pertinent to the task. The available flags are:
-    -domain string[]: Identifies the target domain(s) for subdomain discovery. (required)
-    -active: Includes only active subdomains if necessary. (optional)
-    -timeout int: Sets a timeout limit (default is 30 seconds). (optional)
-    -match string[]: Matches specific subdomains, listed in a comma-separated format. (optional)
-    -filter string[]: Excludes certain subdomains, also in a comma-separated format. (optional)
-    -json: Outputs results in a structured JSON format. (optional)
-    -collect-sources: Gathers source information for each subdomain. (optional)
-    -verbose: Provides an in-depth analysis if detailed insights are needed. (optional)
-    -help: Display help and all available flags. (optional)
+  1. **Direct Domain Inclusion**: When discovering subdomains for a specific domain, directly embed the domain in the command instead of using file references.
+    - -domain string[]: Identifies the target domain(s) for subdomain discovery directly in the command. (required)
+  2. **Selective Flag Use**: Carefully select flags that are directly pertinent to the task. The available flags are:
+    - -active: Includes only active subdomains if necessary. (optional)
+    - -timeout int: Sets a timeout limit (default is 30 seconds). (optional)
+    - -match string[]: Matches specific subdomains, listed in a comma-separated format. (optional)
+    - -filter string[]: Excludes certain subdomains, also in a comma-separated format. (optional)
+    - -json: Outputs results in a structured JSON format. (optional)
+    - -collect-sources: Gathers source information for each subdomain. (optional)
+    - -verbose: Provides an in-depth analysis if detailed insights are needed. (optional)
+    - -help: Display help and all available flags. (optional)
     Use these flags to align with the request's specific requirements or when '-help' is requested for help.
-  2. **Relevance and Efficiency**: Ensure that the flags chosen for the command are relevant and contribute to an effective and efficient subdomain discovery process.
+  3. **Relevance and Efficiency**: Ensure that the flags chosen for the command are relevant and contribute to an effective and efficient subdomain discovery process.
 
-  For example, for a request like 'find subdomains for example.com', the command could be:
+  Example Commands:
+  For discovering subdomains for a specific domain directly:
   \`\`\`json
   { "command": "subfinder -domain example.com" }
   \`\`\`
-  
-  For a request for help or all flags, the command could be:
+
+  For a request for help or all flags:
   \`\`\`json
-  { "command": "naabu -help" }
+  { "command": "subfinder -help" }
   \`\`\`
 
   Response:`;
@@ -507,7 +510,7 @@ const createResponseString = (
     '"\n\n' +
     '**Scan Date and Time**: ' +
     `${formattedDateTime} (${timezone}) \n\n` +
-    '### Identified Domains:\n' +
+    `### Identified Subdomains:\n` +
     '```\n' +
     subfinderData +
     '\n' +
