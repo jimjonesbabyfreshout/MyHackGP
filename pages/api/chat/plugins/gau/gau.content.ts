@@ -158,7 +158,7 @@ const parseGauCommandLine = (input: string): GauParams => {
           }
           break;
         default:
-          params.error = `🚨 Invalid flag provided`;
+          params.error = `🚨 Invalid or unrecognized flag: ${args[i]}`;
           break;
       }
     } catch (error) {
