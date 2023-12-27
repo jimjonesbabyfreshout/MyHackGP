@@ -10,9 +10,7 @@ export const isKatanaCommand = (message: string) => {
   return commandPattern.test(trimmedMessage);
 };
 
-type SectionKey = 'input' | 'configuration' | 'headless' | 'scope' | 'filter';
-
-const displayHelpGuide = (section: string | null) => {
+const displayHelpGuide = () => {
   const helpPrefix = '```\nUsage:\n' + '   katana [flags]\n\n' + 'Flags:\n';
 
   const sections = {
@@ -54,12 +52,6 @@ const displayHelpGuide = (section: string | null) => {
     '\n' +
     sections.filter +
     '\n```';
-
-  const sectionKey = section ? section.toLowerCase() : null;
-
-  if (sectionKey && sectionKey in sections) {
-    return helpPrefix + sections[sectionKey as SectionKey];
-  }
 
   return fullHelpGuide;
 };
@@ -118,16 +110,6 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
 
   const args = input.split(' ');
   args.shift();
-
-  const helpFlagIndex = args.findIndex(
-    (arg) => arg === '-h' || arg === '-help',
-  );
-  if (helpFlagIndex !== -1) {
-    const nextArg = args[helpFlagIndex + 1];
-    const helpSection = nextArg && !nextArg.startsWith('-') ? nextArg : null;
-    params.help = displayHelpGuide(helpSection);
-    return params;
-  }
 
   const isInteger = (value: string) => /^[0-9]+$/.test(value);
   const isWithinLength = (value: string, maxLength: number) =>
@@ -418,6 +400,14 @@ export async function handleKatanaRequest(
     }
   }
 
+  const parts = lastMessage.content.split(' ');
+  if (parts.includes('-h') || parts.includes('-help')) {
+    return new Response(displayHelpGuide(), {
+      status: 200,
+      headers: corsHeaders,
+    });
+  }
+  
   const params = parseKatanaCommandLine(lastMessage.content);
   if (params.error && invokedByToolId) {
     return new Response(`${aiResponse}\n\n${params.error}`, {
