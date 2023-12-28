@@ -41,16 +41,12 @@ const ToolSelector = () => {
       return;
     }
 
-    if (toolId !== ToolID.SUBFINDER && !isPremium) {
-      alert(t('This tool is available only for Plus users.'));
+    if (
+      toolId !== ToolID.SUBFINDER &&
+      selectedConversation?.model.id !== OpenAIModelID.GPT_4
+    ) {
+      alert(t('This tool is only available with the GPT-4 model.'));
       return;
-    }
-
-    if (selectedToolId === ToolID.SUBFINDER) {
-      if (selectedConversation?.model.id !== OpenAIModelID.GPT_4) {
-        alert(t('This tool is only available with the GPT-4 model.'));
-        return;
-      }
     }
 
     homeDispatch({
