@@ -243,8 +243,8 @@ const parseCommandLine = (input: string) => {
   const isValidRegexPattern = (pattern: string) => {
     try {
       const unescapedPattern = pattern
-        .replace(/\\\\"/g, '"')
-        .replace(/\\\\/g, '\\');
+        .replace(/\\\\/g, '\\')
+        .replace(/"/g, "'");
       new RegExp(unescapedPattern);
       return isWithinLength(unescapedPattern, MAX_REGEX_LENGTH);
     } catch (e) {
@@ -506,8 +506,8 @@ const parseCommandLine = (input: string) => {
       case '-extract-regex':
         if (isValidRegexPattern(nextArg)) {
           const unescapedPattern = nextArg
-            .replace(/\\\\"/g, '"')
-            .replace(/\\\\/g, '\\');
+            .replace(/\\\\/g, '\\')
+            .replace(/"/g, "'");
           params.extract_regex.push(unescapedPattern);
           i++;
         } else {
@@ -1055,65 +1055,65 @@ const transformUserQueryToHttpxCommand = (lastMessage: Message) => {
 
   Command Construction Guidelines:
   1. **Direct Host Inclusion**: Directly embed target hosts in the command instead of using file references.
-    - -u, -target: Specify the target host(s) to probe. (required)
+    - -u, -target (string[]): Specify the target host(s) to probe. (required)
   2. **Selective Flag Use**: Carefully choose flags that are pertinent to the task. The available flags for the 'httpx' tool include:
     - **Probes**: Include specific probes for detailed HTTP response information. Available probes:
-      - -status-code: Display response status code.
-      - -content-length: Display response content length.
-      - -content-type: Display response content type.
-      - -location: Display response redirect location.
-      - -favicon: Display mmh3 hash for '/favicon.ico' file.
-      - -hash: Display response body hash (supports md5, mmh3, simhash, sha1, sha256, sha512).
-      - -jarm: Display JARM fingerprint hash.
-      - -response-time: Display response time.
-      - -line-count: Display response body line count.
-      - -word-count: Display response body word count.
-      - -title: Display page title.
-      - -body-preview: Display first N characters of the response body.
-      - -web-server: Display server name.
-      - -tech-detect: Display technology in use based on Wappalyzer dataset.
-      - -method: Display HTTP request method.
-      - -websocket: Display server using WebSocket.
-      - -ip: Display host IP.
-      - -cname: Display host CNAME.
-      - -asn: Display host ASN information.
-      - -cdn: Display CDN/WAF in use.
-      - -probe: Display probe status.
+      - -status-code (boolean): Display response status code.
+      - -content-length (boolean): Display response content length.
+      - -content-type (boolean): Display response content type.
+      - -location (boolean): Display response redirect location.
+      - -favicon (boolean): Display mmh3 hash for '/favicon.ico' file.
+      - -hash (string): Display response body hash (supports md5, mmh3, simhash, sha1, sha256, sha512).
+      - -jarm (boolean): Display JARM fingerprint hash.
+      - -response-time (boolean): Display response time.
+      - -line-count (boolean): Display response body line count.
+      - -word-count (boolean): Display response body word count.
+      - -title (boolean): Display page title.
+      - -body-preview (number): Display first N characters of the response body.
+      - -web-server (boolean): Display server name.
+      - -tech-detect (boolean): Display technology in use based on Wappalyzer dataset.
+      - -method (boolean): Display HTTP request method.
+      - -websocket (boolean): Display server using WebSocket.
+      - -ip (boolean): Display host IP.
+      - -cname (boolean): Display host CNAME.
+      - -asn (boolean): Display host ASN information.
+      - -cdn (boolean): Display CDN/WAF in use.
+      - -probe (boolean): Display probe status.
     - **Matchers**: Utilize matchers to filter responses based on specific criteria:
-      - -match-code: Match response with specified status code (e.g., '-match-code 200,302').
-      - -match-length: Match response with specified content length (e.g., '-match-length 100,102').
-      - -match-line-count: Match response body with specified line count (e.g., '-match-line-count 423,532').
-      - -match-word-count: Match response body with specified word count (e.g., '-match-word-count 43,55').
-      - -match-favicon: Match response with specified favicon hash (e.g., '-match-favicon 1494302000').
-      - -match-string: Match response with specified string (e.g., '-match-string admin').
-      - -match-regex: Match response with specified regex (e.g., '-match-regex admin').
-      - -match-cdn: Match host with specified CDN provider (e.g., '-match-cdn cloudfront,fastly,google,leaseweb,stackpath').
-      - -match-response-time: Match response with specified response time in seconds (e.g., '-match-response-time <1').
-      - -match-condition: Match response with DSL expression condition.
+      - -match-code (string): Match response with specified status code (e.g., '-match-code 200,302').
+      - -match-length (string): Match response with specified content length (e.g., '-match-length 100,102').
+      - -match-line-count (string): Match response body with specified line count (e.g., '-match-line-count 423,532').
+      - -match-word-count (string): Match response body with specified word count (e.g., '-match-word-count 43,55').
+      - -match-favicon (string[]): Match response with specified favicon hash (e.g., '-match-favicon 1494302000').
+      - -match-string (string): Match response with specified string (e.g., '-match-string admin').
+      - -match-regex (string): Match response with specified regex (e.g., '-match-regex admin').
+      - -match-cdn (string[]): Match host with specified CDN provider (e.g., '-match-cdn cloudfront,fastly,google,leaseweb,stackpath').
+      - -match-response-time (string): Match response with specified response time in seconds (e.g., '-match-response-time <1').
+      - -match-condition (string): Match response with DSL expression condition.
     - **Extractor**: Extract specific information from the response:
-      - -extract-regex: Display response content with matched regex.
-      - -extract-preset: Display response content matched by a pre-defined regex (e.g., '-extract-preset ipv4,mail').
+      - -extract-regex (string[]): Display response content with matched regex.
+      - -extract-preset (string[]): Display response content matched by a pre-defined regex (e.g., '-extract-preset ipv4,mail').
     - **Filters**: Apply filters to refine the results. Available filters include:
-      - -filter-code: Filter response with specified status code (e.g., '-filter-code 403,401').
-      - -filter-error-page: Filter response with ML-based error page detection.
-      - -filter-length: Filter response with specified content length (e.g., '-filter-length 23,33').
-      - -filter-line-count: Filter response body with specified line count (e.g., '-filter-line-count 423,532').
-      - -filter-word-count: Filter response body with specified word count (e.g., '-filter-word-count 423,532').
-      - -filter-favicon: Filter response with specified favicon hash (e.g., '-filter-favicon 1494302000').
-      - -filter-string: Filter response with specified string (e.g., '-filter-string admin').
-      - -filter-regex: Filter response with specified regex (e.g., '-filter-regex admin').
-      - -filter-cdn: Filter host with specified CDN provider (e.g., '-filter-cdn cloudfront,fastly,google,leaseweb,stackpath').
-      - -filter-response-time: Filter response with specified response time (e.g., '-filter-response-time '>1'').
-      - -filter-condition: Filter response with DSL expression condition.
-      - -strip: Strips all tags in response (e.g., '-strip html'). supported formats: html,xml (default html)
+      - -filter-code (string): Filter response with specified status code (e.g., '-filter-code 403,401').
+      - -filter-error-page (boolean): Filter response with ML-based error page detection.
+      - -filter-length (string): Filter response with specified content length (e.g., '-filter-length 23,33').
+      - -filter-line-count (string): Filter response body with specified line count (e.g., '-filter-line-count 423,532').
+      - -filter-word-count (string): Filter response body with specified word count (e.g., '-filter-word-count 423,532').
+      - -filter-favicon (string[]): Filter response with specified favicon hash (e.g., '-filter-favicon 1494302000').
+      - -filter-string (string): Filter response with specified string (e.g., '-filter-string admin').
+      - -filter-regex (string): Filter response with specified regex (e.g., '-filter-regex admin').
+      - -filter-cdn (string[]): Filter host with specified CDN provider (e.g., '-filter-cdn cloudfront,fastly,google,leaseweb,stackpath').
+      - -filter-response-time (string): Filter response with specified response time (e.g., '-filter-response-time '>1'').
+      - -filter-condition (string): Filter response with DSL expression condition.
+      - -strip (string): Strips all tags in response (e.g., '-strip html'). supported formats: html,xml (default html)
     - **Output Options**: Customize the output format with these flags:
-      - -json: Write output in JSONL(ines) format.
-      - -include-response-header: Include HTTP response headers in JSON output. (-json only)
-      - -include-response: Include HTTP request/response in JSON output. (-json only)
-      - -include-response-base64: Include base64 encoded request/response in JSON output. (-json only)
-      - -include-chain: Include redirect HTTP chain in JSON output. (-json only)
+      - -json (boolean): Write output in JSONL(ines) format.
+      - -include-response-header (boolean): Include HTTP response headers in JSON output. (-json only)
+      - -include-response (boolean): Include HTTP request/response in JSON output. (-json only)
+      - -include-response-base64 (boolean): Include base64 encoded request/response in JSON output. (-json only)
+      - -include-chain (boolean): Include redirect HTTP chain in JSON output. (-json only)
     - **Optimizations**: Enhance the probing efficiency with:
-      - -timeout: Set a timeout in seconds (default is 15).
+      - -timeout (number): Set a timeout in seconds. (default is 15).
     Do not include any flags not listed here. Use these flags to align with the request's specific requirements or when '-help' is requested for help.
   3. **Relevance and Efficiency**: Ensure that the selected flags are relevant and contribute to an effective and efficient HTTP probing process.
 
