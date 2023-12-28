@@ -242,9 +242,12 @@ const parseCommandLine = (input: string) => {
     /^[a-fA-F0-9]+$/.test(hash) && isWithinLength(hash, MAX_HASH_LENGTH);
   const isValidRegexPattern = (pattern: string) => {
     try {
-      new RegExp(pattern);
-      return isWithinLength(pattern, MAX_REGEX_LENGTH);
-    } catch {
+      const unescapedPattern = pattern
+        .replace(/\\\\"/g, '"')
+        .replace(/\\\\/g, '\\');
+      new RegExp(unescapedPattern);
+      return isWithinLength(unescapedPattern, MAX_REGEX_LENGTH);
+    } catch (e) {
       return false;
     }
   };
@@ -501,8 +504,16 @@ const parseCommandLine = (input: string) => {
         break;
       case '-er':
       case '-extract-regex':
-        params.extract_regex = nextArg.split(',').map((s) => s.trim());
-        i++;
+        if (isValidRegexPattern(nextArg)) {
+          const unescapedPattern = nextArg
+            .replace(/\\\\"/g, '"')
+            .replace(/\\\\/g, '\\');
+          params.extract_regex.push(unescapedPattern);
+          i++;
+        } else {
+          params.error = `Invalid regex pattern for '-extract-regex' flag: ${nextArg}`;
+          return params;
+        }
         break;
       case '-ep':
       case '-extract-preset':
@@ -1040,7 +1051,7 @@ const transformUserQueryToHttpxCommand = (lastMessage: Message) => {
   \`\`\`json
   { "command": "httpx [flags]" }
   \`\`\`
-  Replace '[flags]' with the actual flags and values. Include additional flags only if they are specifically relevant to the request. Ensure the command is properly escaped to be valid JSON. 
+  Replace '[flags]' with the actual flags and values. Include additional flags only if they are specifically relevant to the request. Ensure the command is properly escaped to be valid JSON. When using '-extract-regex' or others regex flags, provide regex patterns that are properly escaped for JSON strings. 
 
   Command Construction Guidelines:
   1. **Direct Host Inclusion**: Directly embed target hosts in the command instead of using file references.
@@ -1103,7 +1114,7 @@ const transformUserQueryToHttpxCommand = (lastMessage: Message) => {
       - -include-chain: Include redirect HTTP chain in JSON output. (-json only)
     - **Optimizations**: Enhance the probing efficiency with:
       - -timeout: Set a timeout in seconds (default is 15).
-    Use these flags to align with the request's specific requirements or when '-help' is requested for help.
+    Do not include any flags not listed here. Use these flags to align with the request's specific requirements or when '-help' is requested for help.
   3. **Relevance and Efficiency**: Ensure that the selected flags are relevant and contribute to an effective and efficient HTTP probing process.
 
   Example Commands:

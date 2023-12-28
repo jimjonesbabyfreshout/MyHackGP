@@ -407,7 +407,7 @@ export async function handleKatanaRequest(
       headers: corsHeaders,
     });
   }
-  
+
   const params = parseKatanaCommandLine(lastMessage.content);
   if (params.error && invokedByToolId) {
     return new Response(`${aiResponse}\n\n${params.error}`, {
