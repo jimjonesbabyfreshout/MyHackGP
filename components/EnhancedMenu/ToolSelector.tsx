@@ -86,6 +86,12 @@ const ToolSelector = () => {
             {t('Katana: Crawl Websites')}
           </option>
           <option
+            value={ToolID.HTTPX}
+            className="dark:bg-[#343541] dark:text-white"
+          >
+            {t('httpx: Web Analysis')}
+          </option>
+          <option
             value={ToolID.NAABU}
             className="dark:bg-[#343541] dark:text-white"
           >
@@ -96,12 +102,6 @@ const ToolSelector = () => {
             className="dark:bg-[#343541] dark:text-white"
           >
             {t('GAU: Fetch URLs')}
-          </option>
-          <option
-            value={ToolID.ALTERX}
-            className="dark:bg-[#343541] dark:text-white"
-          >
-            {t('AlterX: Generate Wordlists')}
           </option>
         </select>
       </div>
