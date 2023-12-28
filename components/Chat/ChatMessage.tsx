@@ -55,7 +55,7 @@ export const ChatMessage: FC<Props> = memo(
     };
 
     const handleInputChange = (
-      event: React.ChangeEvent<HTMLTextAreaElement>
+      event: React.ChangeEvent<HTMLTextAreaElement>,
     ) => {
       setMessageContent(event.target.value);
       if (textareaRef.current) {
@@ -96,7 +96,7 @@ export const ChatMessage: FC<Props> = memo(
 
       const { single, all } = updateConversation(
         updatedConversation,
-        conversations
+        conversations,
       );
       homeDispatch({ field: 'selectedConversation', value: single });
       homeDispatch({ field: 'conversations', value: all });
@@ -233,7 +233,7 @@ export const ChatMessage: FC<Props> = memo(
 
                         children[0] = (children[0] as string).replace(
                           '`▍`',
-                          '▍'
+                          '▍',
                         );
                       }
 
@@ -305,6 +305,6 @@ export const ChatMessage: FC<Props> = memo(
         </div>
       </div>
     );
-  }
+  },
 );
 ChatMessage.displayName = 'ChatMessage';

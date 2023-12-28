@@ -10,9 +10,7 @@ export const isKatanaCommand = (message: string) => {
   return commandPattern.test(trimmedMessage);
 };
 
-type SectionKey = 'input' | 'configuration' | 'headless' | 'scope' | 'filter';
-
-const displayHelpGuide = (section: string | null) => {
+const displayHelpGuide = () => {
   const helpPrefix = '```\nUsage:\n' + '   katana [flags]\n\n' + 'Flags:\n';
 
   const sections = {
@@ -21,10 +19,10 @@ const displayHelpGuide = (section: string | null) => {
       'CONFIGURATION:\n' +
       '  -jc, -js-crawl               enable endpoint parsing / crawling in javascript file\n' +
       '  -iqp, -ignore-query-params   Ignore crawling same path with different query-param values\n' +
-      '  -timeout int                 time to wait for request in seconds (default 10)\n',
+      '  -timeout int                 time to wait for request in seconds (default 15)\n',
     headless:
       'HEADLESS:\n' +
-      '  -hl, -headless          enable headless hybrid crawling (experimental)\n' +
+      // '  -hl, -headless          enable headless hybrid crawling (experimental)\n' +
       '  -xhr, -xhr-extraction   extract xhr request url,method in jsonl output\n',
     scope:
       'SCOPE:\n' +
@@ -55,12 +53,6 @@ const displayHelpGuide = (section: string | null) => {
     sections.filter +
     '\n```';
 
-  const sectionKey = section ? section.toLowerCase() : null;
-
-  if (sectionKey && sectionKey in sections) {
-    return helpPrefix + sections[sectionKey as SectionKey];
-  }
-
   return fullHelpGuide;
 };
 
@@ -87,17 +79,8 @@ interface KatanaParams {
 
 const parseKatanaCommandLine = (input: string): KatanaParams => {
   const MAX_INPUT_LENGTH = 2000;
-  const MAX_PARAM_LENGTH = 100;
-  const MAX_PARAMETER_COUNT = 15;
-
-  if (input.length > MAX_INPUT_LENGTH) {
-    return { error: 'Input command is too long' } as KatanaParams;
-  }
-
-  const args = input.split(' ');
-  if (args.length > MAX_PARAMETER_COUNT) {
-    return { error: 'Too many parameters provided' } as KatanaParams;
-  }
+  const MAX_URL_PARAM_LENGTH = 1000;
+  const MAX_PARAM_LENGTH = 200;
 
   const params: KatanaParams = {
     urls: [],
@@ -115,21 +98,22 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
     extensionFilter: [],
     matchCondition: '',
     filterCondition: '',
-    timeout: 10,
+    timeout: 15,
     error: null,
     help: undefined,
   };
 
-  const helpIndex = args.indexOf('-h');
-  if (helpIndex !== -1) {
-    const nextArg = args[helpIndex + 1];
-    const helpSection = nextArg && !nextArg.startsWith('-') ? nextArg : null;
-    params.help = displayHelpGuide(helpSection);
+  if (input.length > MAX_INPUT_LENGTH) {
+    params.error = `🚨 Input command is too long`;
     return params;
   }
 
+  const args = input.split(' ');
+  args.shift();
+
   const isInteger = (value: string) => /^[0-9]+$/.test(value);
-  const isWithinLength = (value: string) => value.length <= MAX_PARAM_LENGTH;
+  const isWithinLength = (value: string, maxLength: number) =>
+    value.length <= maxLength;
   const isValidUrl = (url: string) =>
     /^https?:\/\/[^\s]+$/.test(url) || /^[^\s]+\.[^\s]+$/.test(url);
 
@@ -143,11 +127,30 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
   };
 
   for (let i = 0; i < args.length; i++) {
-    if (!isWithinLength(args[i])) {
-      return { error: `Parameter value too long: ${args[i]}` } as KatanaParams;
+    const arg = args[i];
+    const nextArg = args[i + 1];
+
+    if (arg === '-u' || arg === '-list') {
+      if (
+        nextArg &&
+        !nextArg.startsWith('-') &&
+        !isWithinLength(nextArg, MAX_URL_PARAM_LENGTH)
+      ) {
+        return {
+          error: `URL parameter value too long: ${nextArg}`,
+        } as KatanaParams;
+      }
+    } else if (
+      nextArg &&
+      !nextArg.startsWith('-') &&
+      !isWithinLength(nextArg, MAX_PARAM_LENGTH)
+    ) {
+      return {
+        error: `Parameter value too long for '${arg}': ${nextArg}`,
+      } as KatanaParams;
     }
 
-    switch (args[i]) {
+    switch (arg) {
       case '-u':
       case '-list':
         while (args[i + 1] && !args[i + 1].startsWith('-')) {
@@ -182,10 +185,10 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
       case '-ignore-query-params':
         params.ignoreQueryParams = true;
         break;
-      case '-hl':
-      case '-headless':
-        params.headless = true;
-        break;
+      // case '-hl':
+      // case '-headless':
+      //   params.headless = true;
+      //   break;
       case '-xhr':
       case '-xhr-extraction':
         params.xhrExtraction = true;
@@ -315,11 +318,14 @@ const parseKatanaCommandLine = (input: string): KatanaParams => {
           return params;
         }
         break;
+      default:
+        params.error = `🚨 Invalid or unrecognized flag: ${args[i]}`;
+        return params;
     }
   }
 
   if (!params.urls.length || params.urls.length === 0) {
-    params.error = '🚨 Error: -u parameter is required.';
+    params.error = '🚨 Error: -u/-list parameter is required.';
   }
 
   return params;
@@ -330,14 +336,17 @@ export async function handleKatanaRequest(
   corsHeaders: HeadersInit | undefined,
   enableKatanaFeature: boolean,
   OpenAIStream: {
-    (model: string, messages: Message[], answerMessage: Message): Promise<
-      ReadableStream<any>
-    >;
+    (
+      model: string,
+      messages: Message[],
+      answerMessage: Message,
+    ): Promise<ReadableStream<any>>;
     (arg0: any, arg1: any, arg2: any): any;
   },
   model: string,
   messagesToSend: Message[],
-  answerMessage: Message
+  answerMessage: Message,
+  invokedByToolId: boolean,
 ) {
   if (!enableKatanaFeature) {
     return new Response('The Katana feature is disabled.', {
@@ -346,10 +355,67 @@ export async function handleKatanaRequest(
     });
   }
 
-  const params = parseKatanaCommandLine(lastMessage.content);
+  let aiResponse = '';
 
-  if (params.help) {
-    return new Response(params.help, { status: 200, headers: corsHeaders });
+  if (invokedByToolId) {
+    const answerPrompt = transformUserQueryToKatanaCommand(lastMessage);
+    answerMessage.content = answerPrompt;
+
+    const openAIResponseStream = await OpenAIStream(
+      model,
+      messagesToSend,
+      answerMessage,
+    );
+
+    const reader = openAIResponseStream.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      aiResponse += new TextDecoder().decode(value, { stream: true });
+    }
+
+    try {
+      const jsonMatch = aiResponse.match(/```json\n\{.*?\}\n```/s);
+      if (jsonMatch) {
+        const jsonResponseString = jsonMatch[0].replace(/```json\n|\n```/g, '');
+        const jsonResponse = JSON.parse(jsonResponseString);
+        lastMessage.content = jsonResponse.command;
+      } else {
+        return new Response(
+          `${aiResponse}\n\nNo JSON command found in the AI response.`,
+          {
+            status: 200,
+            headers: corsHeaders,
+          },
+        );
+      }
+    } catch (error) {
+      return new Response(
+        `${aiResponse}\n\n'Error extracting and parsing JSON from AI response: ${error}`,
+        {
+          status: 200,
+          headers: corsHeaders,
+        },
+      );
+    }
+  }
+
+  const parts = lastMessage.content.split(' ');
+  if (parts.includes('-h') || parts.includes('-help')) {
+    return new Response(displayHelpGuide(), {
+      status: 200,
+      headers: corsHeaders,
+    });
+  }
+
+  const params = parseKatanaCommandLine(lastMessage.content);
+  if (params.error && invokedByToolId) {
+    return new Response(`${aiResponse}\n\n${params.error}`, {
+      status: 200,
+      headers: corsHeaders,
+    });
+  } else if (params.error) {
+    return new Response(params.error, { status: 200, headers: corsHeaders });
   }
 
   if (params.error) {
@@ -416,10 +482,10 @@ export async function handleKatanaRequest(
   }
   if (params.filterCondition) {
     katanaUrl += `&filterCondition=${encodeURIComponent(
-      params.filterCondition
+      params.filterCondition,
     )}`;
   }
-  if (params.timeout !== 10) {
+  if (params.timeout !== 15) {
     katanaUrl += `&timeout=${params.timeout}`;
   }
 
@@ -432,11 +498,15 @@ export async function handleKatanaRequest(
     async start(controller) {
       const sendMessage = (
         data: string,
-        addExtraLineBreaks: boolean = false
+        addExtraLineBreaks: boolean = false,
       ) => {
         const formattedData = addExtraLineBreaks ? `${data}\n\n` : data;
         controller.enqueue(new TextEncoder().encode(formattedData));
       };
+
+      if (invokedByToolId) {
+        sendMessage(aiResponse, true);
+      }
 
       sendMessage('🚀 Starting the scan. It might take a minute.', true);
 
@@ -478,7 +548,7 @@ export async function handleKatanaRequest(
 
         if (!outputString && outputString.length === 0) {
           const noDataMessage = `🔍 Didn't find anything for ${params.urls.join(
-            ', '
+            ', ',
           )}.`;
           clearInterval(intervalId);
           sendMessage(noDataMessage, true);
@@ -516,6 +586,55 @@ export async function handleKatanaRequest(
 
   return new Response(stream, { headers });
 }
+
+const transformUserQueryToKatanaCommand = (lastMessage: Message) => {
+  const answerMessage = endent`
+  Query: "${lastMessage.content}"
+
+  Based on this query, generate a command for the 'katana' tool, focusing on URL crawling and filtering. The command should utilize the most relevant flags, with '-u' or '-list' being essential to specify the target URL or list. If the request involves scanning a list of domains, embed the domains directly in the command rather than referencing an external file. Include the '-help' flag if a help guide or a full list of flags is requested. The command should follow this structured format for clarity and accuracy:
+
+  ALWAYS USE THIS FORMAT:
+  \`\`\`json
+  { "command": "katana [flags]" }
+  \`\`\`
+  Replace '[flags]' with the actual flags and values. Include additional flags only if they are specifically relevant to the request. Ensure the command is properly escaped to be valid JSON. 
+
+  Command Construction Guidelines:
+  1. **Direct Domain Inclusion**: When scanning a list of domains, directly embed them in the command instead of using file references.
+    - -u, -list: Specify the target URL or list to crawl. (required)
+  2. **Selective Flag Use**: Carefully choose flags that are pertinent to the task. The available flags for the 'katana' tool include:
+    - -js-crawl: Enable crawling of JavaScript files. (optional)
+    - -ignore-query-params: Ignore different query parameters in the same path. (optional)
+    - -timeout: Set a time limit in seconds (default 15 seconds). (optional)
+    - -xhr-extraction: Extract XHR request URL and method in JSONL format. (optional)
+    - -crawl-scope: Define in-scope URL regex for crawling. (optional)
+    - -crawl-out-scope: Define out-of-scope URL regex to exclude from crawling. (optional)
+    - -display-out-scope: Show external endpoints from scoped crawling. (optional)
+    - -match-regex: Match output URLs with specified regex patterns. (optional)
+    - -filter-regex: Filter output URLs using regex patterns. (optional)
+    - -extension-match: Match output for specified file extensions. (optional)
+    - -extension-filter: Filter output for specified file extensions. (optional)
+    - -match-condition: Apply DSL-based conditions for matching responses. (optional)
+    - -filter-condition: Apply DSL-based conditions for filtering responses. (optional)
+    - -help: Display help and all available flags. (optional)
+    Use these flags to align with the request's specific requirements or when '-help' is requested for help.
+  3. **Relevance and Efficiency**: Ensure that the selected flags are relevant and contribute to an effective and efficient URL crawling and filtering process.
+
+  Example Commands:
+  For scanning a list of domains directly:
+  \`\`\`json
+  { "command": "katana -list domain1.com,domain2.com,domain3.com" }
+  \`\`\`
+
+  For a request for help or to see all flags:
+  \`\`\`json
+  { "command": "katana -help" }
+  \`\`\`
+
+  Response:`;
+
+  return answerMessage;
+};
 
 function processurls(outputString: string) {
   return outputString

@@ -33,13 +33,13 @@ const processGoogleResults = async (
     }[];
   },
   tokenLimit: number,
-  tokenCount: number
+  tokenCount: number,
 ) => {
   await init((imports) => WebAssembly.instantiate(wasm, imports));
   const encoding = new Tiktoken(
     tiktokenModel.bpe_ranks,
     tiktokenModel.special_tokens,
-    tiktokenModel.pat_str
+    tiktokenModel.pat_str,
   );
 
   let googleSources: GoogleSource[] = [];
@@ -61,7 +61,7 @@ const processGoogleResults = async (
         snippet: item.snippet,
         image: item.pagemap?.cse_image?.[0]?.src,
         text: '',
-      })
+      }),
     );
   }
 
@@ -71,7 +71,7 @@ const processGoogleResults = async (
     googleSources.map(async (source) => {
       try {
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Request timed out')), 5000)
+          setTimeout(() => reject(new Error('Request timed out')), 5000),
         );
 
         const res = (await Promise.race([
@@ -101,7 +101,7 @@ const processGoogleResults = async (
         console.error(`Error processing source link ${source.link}:`, error);
         return null;
       }
-    })
+    }),
   );
 
   const filteredSources = sourcesWithText.filter(Boolean);

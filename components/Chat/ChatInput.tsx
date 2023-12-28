@@ -1,13 +1,14 @@
 import {
   IconArrowDown,
-  IconSettings,
   IconPlayerStop,
   IconRepeat,
   IconSend,
+  IconSettings,
 } from '@tabler/icons-react';
 import {
   KeyboardEvent,
   MutableRefObject,
+  SetStateAction,
   useCallback,
   useContext,
   useEffect,
@@ -21,10 +22,14 @@ import { Message } from '@/types/chat';
 import { Plugin } from '@/types/plugin';
 import { Prompt } from '@/types/prompt';
 
+import useFocusHandler from '@/hooks/useFocusInputHandler';
+import useDisplayAttribute from '@/hooks/useDisplayAttribute';
+
 import HomeContext from '@/pages/api/home/home.context';
 
+import EnhancedMenu from '../EnhancedMenu/EnhancedMenu';
+
 import { VariableModal } from './VariableModal';
-import { PluginSelect } from './PluginSelect';
 
 interface Props {
   onSend: (message: Message, plugin: Plugin | null) => void;
@@ -46,7 +51,13 @@ export const ChatInput = ({
   const { t } = useTranslation('chat');
 
   const {
-    state: { selectedConversation, messageIsStreaming, prompts },
+    state: {
+      selectedConversation,
+      messageIsStreaming,
+      prompts,
+      currentMessage,
+      selectedToolId,
+    },
 
     dispatch: homeDispatch,
   } = useContext(HomeContext);
@@ -58,13 +69,21 @@ export const ChatInput = ({
   const [promptInputValue, setPromptInputValue] = useState('');
   const [variables, setVariables] = useState<string[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [showPluginSelect, setShowPluginSelect] = useState(false);
   const [plugin, setPlugin] = useState<Plugin | null>(null);
+  const [showEnhanceMenu, setShowEnhanceMenu] = useState(true);
+
+  const toggleEnhanceMenu = () => {
+    setShowEnhanceMenu(!showEnhanceMenu);
+  };
+
+  const { isFocused, setIsFocused, menuRef } = useFocusHandler(textareaRef);
 
   const promptListRef = useRef<HTMLUListElement | null>(null);
 
+  const enhancedMenuDisplayValue = useDisplayAttribute(menuRef);
+
   const filteredPrompts = prompts.filter((prompt) =>
-    prompt.name.toLowerCase().includes(promptInputValue.toLowerCase())
+    prompt.name.toLowerCase().includes(promptInputValue.toLowerCase()),
   );
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -75,8 +94,8 @@ export const ChatInput = ({
       alert(
         t(
           `Message limit is {{maxLength}} characters. You have entered {{valueLength}} characters.`,
-          { maxLength, valueLength: value.length }
-        )
+          { maxLength, valueLength: value.length },
+        ),
       );
       return;
     }
@@ -125,7 +144,7 @@ export const ChatInput = ({
       setContent((prevContent) => {
         const newContent = prevContent?.replace(
           /\/\w*$/,
-          selectedPrompt.content
+          selectedPrompt.content,
         );
         return newContent;
       });
@@ -135,21 +154,22 @@ export const ChatInput = ({
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    setIsTyping(e.nativeEvent.isComposing);
     if (showPromptList) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         setActivePromptIndex((prevIndex) =>
-          prevIndex < prompts.length - 1 ? prevIndex + 1 : prevIndex
+          prevIndex < prompts.length - 1 ? prevIndex + 1 : prevIndex,
         );
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         setActivePromptIndex((prevIndex) =>
-          prevIndex > 0 ? prevIndex - 1 : prevIndex
+          prevIndex > 0 ? prevIndex - 1 : prevIndex,
         );
       } else if (e.key === 'Tab') {
         e.preventDefault();
         setActivePromptIndex((prevIndex) =>
-          prevIndex < prompts.length - 1 ? prevIndex + 1 : 0
+          prevIndex < prompts.length - 1 ? prevIndex + 1 : 0,
         );
       } else if (e.key === 'Enter') {
         e.preventDefault();
@@ -163,6 +183,8 @@ export const ChatInput = ({
     } else if (e.key === 'Enter' && !isTyping && !isMobile() && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    } else if (e.key === '/' && e.metaKey) {
+      e.preventDefault();
     }
   };
 
@@ -232,6 +254,15 @@ export const ChatInput = ({
         textareaRef?.current?.scrollHeight > 400 ? 'auto' : 'hidden'
       }`;
     }
+
+    homeDispatch({
+      field: 'currentMessage',
+      value: {
+        ...currentMessage,
+        role: 'user',
+        content,
+      },
+    });
   }, [content]);
 
   useEffect(() => {
@@ -251,12 +282,20 @@ export const ChatInput = ({
     };
   }, []);
 
+  const isPhone = window.innerWidth <= 640;
+
   return (
-    <div className="absolute bottom-0 left-0 w-full border-transparent bg-gradient-to-b from-transparent via-white to-white pt-6 dark:border-white/20 dark:via-hgpt-medium-gray dark:to-hgpt-medium-gray md:pt-2">
-      <div className="stretch mx-2 mt-4 flex flex-row gap-3 pb-2 last:mb-2 md:mx-4 md:mt-[52px] md:last:mb-6 lg:mx-auto lg:max-w-3xl">
+    <div className="absolute bottom-0 left-0 w-full border-transparent bg-gradient-to-b from-transparent via-white to-white pt-6 md:pt-2 dark:border-white/20 dark:via-hgpt-medium-gray dark:to-hgpt-medium-gray">
+      <div
+        className={` ${
+          enhancedMenuDisplayValue === 'none'
+            ? 'mt-[1.5rem] md:mt-[3rem]'
+            : 'mt-[1.5rem] md:mt-[3rem]'
+        } stretch mx-2 mb-4 mt-4 flex flex-row gap-3 transition-all ease-in-out md:mx-4 md:last:mb-6 lg:mx-auto lg:max-w-3xl`}
+      >
         {messageIsStreaming && (
           <button
-            className="absolute left-0 right-0 top-0 mx-auto mb-3 flex w-fit items-center gap-3 rounded border border-neutral-200 bg-white px-4 py-2 text-black hover:opacity-50 dark:border-neutral-600 dark:bg-hgpt-medium-gray dark:text-white md:mb-0 md:mt-2"
+            className="absolute left-0 right-0 top-0 mx-auto mb-3 flex w-fit items-center gap-3 rounded border border-neutral-200 bg-white px-4 py-2 text-black hover:opacity-50 md:mb-0 md:mt-2 dark:border-neutral-600 dark:bg-hgpt-medium-gray dark:text-white"
             onClick={handleStopConversation}
           >
             <IconPlayerStop size={16} /> {t('Stop Generating')}
@@ -267,36 +306,55 @@ export const ChatInput = ({
           selectedConversation &&
           selectedConversation.messages.length > 0 && (
             <button
-              className="absolute left-0 right-0 top-0 mx-auto mb-3 flex w-fit items-center gap-3 rounded border border-neutral-200 bg-white px-4 py-2 text-black hover:opacity-50 dark:border-neutral-600 dark:bg-hgpt-medium-gray dark:text-white md:mb-0 md:mt-2"
+              className="absolute left-0 right-0 top-0 mx-auto mb-3 flex w-fit items-center gap-3 rounded border border-neutral-200 bg-white px-4 py-2 text-black hover:opacity-50 md:mb-0 md:mt-2 dark:border-neutral-600 dark:bg-hgpt-medium-gray dark:text-white"
               onClick={onRegenerate}
             >
               <IconRepeat size={16} /> {t('Regenerate response')}
             </button>
           )}
 
-        <div className="relative mx-2 flex w-full flex-grow flex-col rounded-md border border-black/10 bg-white shadow-[0_0_10px_rgba(0,0,0,0.10)] dark:border-gray-900/50 dark:bg-hgpt-chat-gray dark:text-white dark:shadow-[0_0_15px_rgba(0,0,0,0.10)] sm:mx-4">
-          <button
-            className="absolute left-2 top-2 rounded-sm p-1 text-neutral-800 opacity-60 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-opacity-50 dark:text-neutral-100 dark:hover:text-neutral-200"
-            onClick={() => setShowPluginSelect(!showPluginSelect)}
-            onKeyDown={(e) => {}}
-          >
-            {plugin ? <IconSettings size={20} /> : <IconSettings size={20} />}
-          </button>
-
-          {showPluginSelect && (
-            <div className="absolute bottom-14 left-0 rounded bg-white dark:bg-hgpt-medium-gray">
-              <PluginSelect />
-            </div>
+        <div
+          className={`relative mx-2 flex w-full flex-grow flex-col rounded-md 
+            border bg-white shadow-[0_0_10px_rgba(0,0,0,0.10)] 
+            sm:mx-4 dark:bg-[#40414F] 
+            dark:text-white dark:shadow-[0_0_15px_rgba(0,0,0,0.10)] 
+            ${
+              selectedToolId === null
+                ? 'border-black/10 dark:border-gray-900/50'
+                : 'border-blue-500 dark:border-blue-500'
+            }
+          `}
+        >
+          {showEnhanceMenu && (
+            <EnhancedMenu
+              ref={menuRef}
+              isFocused={isFocused}
+              setIsFocused={setIsFocused}
+            />
           )}
 
           <div className="flex items-start">
+            <div className="flex items-center pl-2 pt-2">
+              <button
+                onClick={toggleEnhanceMenu}
+                className={`rounded-sm p-1 ${
+                  showEnhanceMenu
+                    ? 'text-hgpt-dark-gray dark:text-hgpt-hover-white'
+                    : 'text-zinc-500 dark:text-zinc-400'
+                } cursor-default hover:text-hgpt-dark-gray hover:dark:text-hgpt-hover-white`}
+              >
+                <IconSettings size={20} />
+              </button>
+            </div>
+
             <textarea
+              onFocus={() => setIsFocused(true)}
               ref={textareaRef}
-              className="m-0 w-full resize-none border-0 bg-transparent p-0 py-2 pl-10 pr-8 text-black dark:bg-transparent dark:text-white md:py-3 md:pl-10"
+              className="m-0 w-full resize-none rounded-md bg-transparent p-0 py-3 pl-3 pr-8 text-black outline-none md:py-3 md:pl-3 dark:text-white"
               style={{
                 resize: 'none',
                 bottom: `${textareaRef?.current?.scrollHeight}px`,
-                maxHeight: '400px',
+                maxHeight: isPhone ? '200px' : '400px',
                 overflow: `${
                   textareaRef.current && textareaRef.current.scrollHeight > 400
                     ? 'auto'
@@ -306,8 +364,7 @@ export const ChatInput = ({
               placeholder={t('Type a message ...') || ''}
               value={content}
               rows={1}
-              onCompositionStart={() => setIsTyping(true)}
-              onCompositionEnd={() => setIsTyping(false)}
+              onKeyUp={(e) => setIsTyping(e.nativeEvent.isComposing)}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
             />

@@ -77,7 +77,7 @@ const Home = ({
 
       return getModels();
     },
-    { enabled: true, refetchOnMount: false }
+    { enabled: true, refetchOnMount: false },
   );
 
   useEffect(() => {
@@ -166,7 +166,7 @@ const Home = ({
 
   const handleUpdateConversation = (
     conversation: Conversation,
-    data: KeyValuePair
+    data: KeyValuePair,
   ) => {
     const updatedConversation = {
       ...conversation,
@@ -175,7 +175,7 @@ const Home = ({
 
     const { single, all } = updateConversation(
       updatedConversation,
-      conversations
+      conversations,
     );
 
     dispatch({ field: 'selectedConversation', value: single });
@@ -249,7 +249,7 @@ const Home = ({
       const parsedConversationHistory: Conversation[] =
         JSON.parse(conversationHistory);
       const cleanedConversationHistory = cleanConversationHistory(
-        parsedConversationHistory
+        parsedConversationHistory,
       );
 
       dispatch({ field: 'conversations', value: cleanedConversationHistory });
@@ -260,7 +260,7 @@ const Home = ({
       const parsedSelectedConversation: Conversation =
         JSON.parse(selectedConversation);
       const cleanedSelectedConversation = cleanSelectedConversation(
-        parsedSelectedConversation
+        parsedSelectedConversation,
       );
 
       dispatch({
@@ -344,7 +344,7 @@ export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
   const defaultModelId =
     (process.env.NEXT_PUBLIC_DEFAULT_MODEL &&
       Object.values(OpenAIModelID).includes(
-        process.env.NEXT_PUBLIC_DEFAULT_MODEL as OpenAIModelID
+        process.env.NEXT_PUBLIC_DEFAULT_MODEL as OpenAIModelID,
       ) &&
       process.env.NEXT_PUBLIC_DEFAULT_MODEL) ||
     fallbackModelID;

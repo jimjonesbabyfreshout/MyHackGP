@@ -1,4 +1,5 @@
 import { Message } from '@/types/chat';
+import endent from 'endent';
 
 export const isNaabuCommand = (message: string) => {
   if (!message.startsWith('/')) return false;
@@ -22,7 +23,7 @@ const displayHelpGuide = () => {
 
     PORT:
        -port, -p string             ports to scan (80,443, 100-200)
-       -top-ports, -tp string       top ports to scan (default 100) [full,100,1000]
+       -top-ports, -tp string       top ports to scan (default 100) [100,1000]
        -exclude-ports, -ep string   ports to exclude from scan (comma-separated)
        -port-threshold, -pts int    port threshold to skip port scan for the host
        -exclude-cdn, -ec            skip full port scans for CDN/WAF (only scan for port 80,443)
@@ -30,7 +31,7 @@ const displayHelpGuide = () => {
 
     CONFIGURATION:
        -scan-all-ips, -sa   scan all the IP's associated with DNS record
-       -timeout int         millisecond to wait before timing out (default 1000)
+       -timeout int         seconds to wait before timing out (default 10)
     
     HOST-DISCOVERY:
        -sn, -host-discovery            Perform Only Host Discovery
@@ -70,8 +71,8 @@ interface NaabuParams {
 
 const parseNaabuCommandLine = (input: string): NaabuParams => {
   const MAX_INPUT_LENGTH = 2000;
-  const MAX_PARAM_LENGTH = 100;
-  const MAX_PARAMETER_COUNT = 15;
+  const MAX_HOST_PARAM_LENGTH = 1000;
+  const MAX_PARAM_LENGTH = 200;
   const MAX_ARRAY_SIZE = 50;
 
   const params: NaabuParams = {
@@ -91,7 +92,7 @@ const parseNaabuCommandLine = (input: string): NaabuParams => {
     arpPing: false,
     ndPing: false,
     revPtr: false,
-    timeout: 10000,
+    timeout: 10,
     outputJson: false,
     error: null,
   };
@@ -104,15 +105,10 @@ const parseNaabuCommandLine = (input: string): NaabuParams => {
   const args = input.split(' ');
   args.shift();
 
-  if (args.length > MAX_PARAMETER_COUNT) {
-    params.error = `🚨 Too many parameters provided`;
-    return params;
-  }
-
   const isValidHostnameOrIP = (value: string) => {
     return (
       /^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$/.test(
-        value
+        value,
       ) || /^(\d{1,3}\.){3}\d{1,3}$/.test(value)
     );
   };
@@ -122,21 +118,32 @@ const parseNaabuCommandLine = (input: string): NaabuParams => {
       const range = p.split('-');
       return range.every(
         (r) =>
-          /^\d+$/.test(r) && parseInt(r, 10) >= 1 && parseInt(r, 10) <= 65535
+          /^\d+$/.test(r) && parseInt(r, 10) >= 1 && parseInt(r, 10) <= 65535,
       );
     });
+  };
+  const isValidTopPortsValue = (value: string) => {
+    return ['100', '1000'].includes(value);
   };
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
-    if (args[i + 1] && args[i + 1].length > MAX_PARAM_LENGTH) {
+    if (
+      arg !== '-host' &&
+      args[i + 1] &&
+      args[i + 1].length > MAX_PARAM_LENGTH
+    ) {
       params.error = `🚨 Parameter value too long for '${arg}'`;
       return params;
     }
 
     switch (arg) {
       case '-host':
+        if (args[i + 1] && args[i + 1].length > MAX_HOST_PARAM_LENGTH) {
+          params.error = `🚨 Host parameter value too long`;
+          return params;
+        }
         const hosts = args[++i].split(',');
         if (
           hosts.some((host) => !isValidHostnameOrIP(host)) ||
@@ -159,7 +166,7 @@ const parseNaabuCommandLine = (input: string): NaabuParams => {
       case '-top-ports':
       case '-tp':
         const topPortsArg = args[++i];
-        if (!['100', '1000', '-'].includes(topPortsArg)) {
+        if (!isValidTopPortsValue(topPortsArg)) {
           params.error = '🚨 Invalid top-ports value';
           return params;
         }
@@ -229,7 +236,7 @@ const parseNaabuCommandLine = (input: string): NaabuParams => {
       case '-timeout':
         if (args[i + 1] && isInteger(args[i + 1])) {
           let timeoutValue = parseInt(args[++i]);
-          if (timeoutValue > 90000) {
+          if (timeoutValue > 90) {
             params.error = `🚨 Timeout value exceeds the maximum limit of 90 seconds`;
             return params;
           }
@@ -244,13 +251,13 @@ const parseNaabuCommandLine = (input: string): NaabuParams => {
         params.outputJson = true;
         break;
       default:
-        params.error = `🚨 Invalid or unrecognized flag: ${arg}`;
+        params.error = `🚨 Invalid or unrecognized flag: ${args[i]}`;
         return params;
     }
   }
 
-  if (!params.host) {
-    params.error = `🚨 No host provided`;
+  if (!params.host || params.host.length === 0) {
+    params.error = `🚨 Error: -host parameter is required.`;
   }
 
   return params;
@@ -261,14 +268,17 @@ export async function handleNaabuRequest(
   corsHeaders: HeadersInit | undefined,
   enableNaabuFeature: boolean,
   OpenAIStream: {
-    (model: string, messages: Message[], answerMessage: Message): Promise<
-      ReadableStream<any>
-    >;
+    (
+      model: string,
+      messages: Message[],
+      answerMessage: Message,
+    ): Promise<ReadableStream<any>>;
     (arg0: any, arg1: any, arg2: any): any;
   },
   model: string,
   messagesToSend: Message[],
-  answerMessage: Message
+  answerMessage: Message,
+  invokedByToolId: boolean,
 ) {
   if (!enableNaabuFeature) {
     return new Response('The Naabu feature is disabled.', {
@@ -277,8 +287,53 @@ export async function handleNaabuRequest(
     });
   }
 
+  let aiResponse = '';
+
+  if (invokedByToolId) {
+    const answerPrompt = transformUserQueryToNaabuCommand(lastMessage);
+    answerMessage.content = answerPrompt;
+
+    const openAIResponseStream = await OpenAIStream(
+      model,
+      messagesToSend,
+      answerMessage,
+    );
+
+    const reader = openAIResponseStream.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      aiResponse += new TextDecoder().decode(value, { stream: true });
+    }
+
+    try {
+      const jsonMatch = aiResponse.match(/```json\n\{.*?\}\n```/s);
+      if (jsonMatch) {
+        const jsonResponseString = jsonMatch[0].replace(/```json\n|\n```/g, '');
+        const jsonResponse = JSON.parse(jsonResponseString);
+        lastMessage.content = jsonResponse.command;
+      } else {
+        return new Response(
+          `${aiResponse}\n\nNo JSON command found in the AI response.`,
+          {
+            status: 200,
+            headers: corsHeaders,
+          },
+        );
+      }
+    } catch (error) {
+      return new Response(
+        `${aiResponse}\n\n'Error extracting and parsing JSON from AI response: ${error}`,
+        {
+          status: 200,
+          headers: corsHeaders,
+        },
+      );
+    }
+  }
+
   const parts = lastMessage.content.split(' ');
-  if (parts.includes('-h')) {
+  if (parts.includes('-h') || parts.includes('-help')) {
     return new Response(displayHelpGuide(), {
       status: 200,
       headers: corsHeaders,
@@ -287,7 +342,12 @@ export async function handleNaabuRequest(
 
   const params = parseNaabuCommandLine(lastMessage.content);
 
-  if (params.error) {
+  if (params.error && invokedByToolId) {
+    return new Response(`${aiResponse}\n\n${params.error}`, {
+      status: 200,
+      headers: corsHeaders,
+    });
+  } else if (params.error) {
     return new Response(params.error, { status: 200, headers: corsHeaders });
   }
 
@@ -304,8 +364,8 @@ export async function handleNaabuRequest(
   if (params.port.length > 0) {
     naabuUrl += `&port=${params.port}`;
   }
-  if (params.timeout && params.timeout !== 10000) {
-    naabuUrl += `&timeout=${params.timeout}`;
+  if (params.timeout && params.timeout !== 10) {
+    naabuUrl += `&timeout=${params.timeout * 1000}`;
   }
   if (params.scanAllIPs) {
     naabuUrl += `&scanAllIPs=${params.scanAllIPs}`;
@@ -362,11 +422,15 @@ export async function handleNaabuRequest(
     async start(controller) {
       const sendMessage = (
         data: string,
-        addExtraLineBreaks: boolean = false
+        addExtraLineBreaks: boolean = false,
       ) => {
         const formattedData = addExtraLineBreaks ? `${data}\n\n` : data;
         controller.enqueue(new TextEncoder().encode(formattedData));
       };
+
+      if (invokedByToolId) {
+        sendMessage(aiResponse, true);
+      }
 
       sendMessage('🚀 Starting the scan. It might take a minute.', true);
 
@@ -406,8 +470,8 @@ export async function handleNaabuRequest(
           });
         }
 
-        if (!outputString && outputString.length === 0) {
-          const noDataMessage = `🔍 Didn't find any valid ports for ${params.host}.`;
+        if (!outputString || outputString.length === 0) {
+          const noDataMessage = `🔍 I've just finished going through your command: "${lastMessage.content}". Looks like there aren't any valid ports to report for "${params.host}".`;
           clearInterval(intervalId);
           sendMessage(noDataMessage, true);
           controller.close();
@@ -444,6 +508,59 @@ export async function handleNaabuRequest(
 
   return new Response(stream, { headers });
 }
+
+const transformUserQueryToNaabuCommand = (lastMessage: Message) => {
+  const answerMessage = endent`
+  Query: "${lastMessage.content}"
+
+  Based on this query, generate a command for the 'naabu' tool, focusing on port scanning. The command should use only the most relevant flags, with '-host' being essential. If the request involves scanning a list of hosts, embed the hosts directly in the command rather than referencing an external file. The '-json' flag is optional and should be included only if specified in the user's request. Include the '-help' flag if a help guide or a full list of flags is requested. The command should follow this structured format for clarity and accuracy:
+
+  ALWAYS USE THIS FORMAT:
+  \`\`\`json
+  { "command": "naabu [flags]" }
+  \`\`\`
+  Replace '[flags]' with the actual flags and values, directly including the hosts if necessary. Include additional flags only if they are specifically relevant to the request. Ensure the command is properly escaped to be valid JSON. 
+
+  Command Construction Guidelines for Naabu:
+  1. **Direct Host Inclusion**: When scanning a list of hosts, directly embed them in the command instead of using file references.
+    - -host string[]: Identifies the target host(s) for port scanning directly in the command. (required)
+  2. **Selective Flag Use**: Include only the flags that are essential to the request. The available flags for Naabu are:
+    - -port string: Specify ports to scan (e.g., 80,443, 100-200). (optional)
+    - -top-ports string: Scan top N ports (e.g., 100, 1000). (optional)
+    - -exclude-ports string: Exclude specific ports from the scan. (optional)
+    - -port-threshold int: Set a port threshold to skip port scan for the host. (optional)
+    - -exclude-cdn: Exclude full port scans for CDN/WAF. (optional)
+    - -display-cdn: Display CDN in use. (optional)
+    - -scan-all-ips: Scan all IPs associated with a DNS record. (optional)
+    - -timeout int: Set a timeout limit in seconds (default is 10). (optional)
+    - -host-discovery: Perform only host discovery. (optional)
+    - -skip-host-discovery: Skip host discovery. (optional)
+    - -probe-icmp-echo: Use ICMP echo request ping. (optional)
+    - -probe-icmp-timestamp: Use ICMP timestamp request ping. (optional)
+    - -probe-icmp-address-mask: Use ICMP address mask request ping. (optional)
+    - -arp-ping: Use ARP ping. (optional)
+    - -nd-ping: Use IPv6 Neighbor Discovery ping. (optional)
+    - -rev-ptr: Perform a reverse PTR lookup. (optional)
+    - -json: Output results in JSON format. (optional)
+    - -help: Display help and all available flags. (optional)
+    Use these flags to align with the request's specific requirements or when '-help' is requested for help.
+  3. **Relevance and Efficiency**: Ensure that the flags chosen for the command are relevant and contribute to an effective and efficient port discovery process.
+
+  Example Commands:
+  For scanning a list of hosts directly:
+  \`\`\`json
+  { "command": "naabu -host host1.com,host2.com,host3.com -top-ports 100" }
+  \`\`\`
+
+  For a request for help or all flags:
+  \`\`\`json
+  { "command": "naabu -help" }
+  \`\`\`
+
+  Response:`;
+
+  return answerMessage;
+};
 
 function processPorts(outputString: string) {
   return outputString

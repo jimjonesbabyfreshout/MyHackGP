@@ -21,6 +21,10 @@ import {
   isNaabuCommand,
   handleNaabuRequest,
 } from '@/pages/api/chat/plugins/naabu/naabu.content';
+import {
+  isHttpxCommand,
+  handleHttpxRequest,
+} from '@/pages/api/chat/plugins/httpx/httpx.content';
 
 import { corsHeaders } from '@/pages/api/chat';
 
@@ -53,6 +57,9 @@ export const displayToolsHelpGuide = (toolUrls: {
     `+ [Subfinder](${toolUrls.Subfinder}): ` +
     'A powerful subdomain discovery tool. Use /subfinder -h for more details.' +
     '\n\n' +
+    `+ [httpx](${toolUrls.Httpx}): ` +
+    'A versatile HTTP toolkit for web analysis. Use /httpx -h for more details.' +
+    '\n\n' +
     `+ [Naabu](${toolUrls.Naabu}): ` +
     'A port scanning tool. Use /naabu -h for more details.' +
     '\n\n' +
@@ -71,6 +78,8 @@ const commandHandlers: CommandHandler = {
   handleKatanaRequest,
   isSubfinderCommand,
   handleSubfinderRequest,
+  isHttpxCommand,
+  handleHttpxRequest,
   isNaabuCommand,
   handleNaabuRequest,
   isGauCommand,
@@ -84,9 +93,34 @@ const commandHandlers: CommandHandler = {
 export const toolUrls: ToolUrls = {
   Katana: 'https://github.com/projectdiscovery/katana',
   Subfinder: 'https://github.com/projectdiscovery/subfinder',
+  httpx: 'https://github.com/projectdiscovery/httpx',
   Naabu: 'https://github.com/projectdiscovery/naabu',
   Gau: 'https://github.com/lc/gau',
   Alterx: 'https://github.com/projectdiscovery/alterx',
+};
+
+type ToolHandlerFunction = (
+  lastMessage: Message,
+  corsHeaders: HeadersInit | undefined,
+  enableFeature: boolean,
+  OpenAIStream: any,
+  model: string,
+  messagesToSend: Message[],
+  answerMessage: Message,
+  invokedByToolId: boolean,
+) => Promise<any>;
+
+type ToolIdToHandlerMapping = {
+  [key: string]: ToolHandlerFunction;
+};
+
+export const toolIdToHandlerMapping: ToolIdToHandlerMapping = {
+  subfinder: handleSubfinderRequest,
+  katana: handleKatanaRequest,
+  httpx: handleHttpxRequest,
+  naabu: handleNaabuRequest,
+  gau: handleGauRequest,
+  alterx: handleAlterxRequest,
 };
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -101,7 +135,7 @@ export const handleCommand = async (
   lastMessage: Message,
   model: string,
   messagesToSend: Message[],
-  answerMessage: Message
+  answerMessage: Message,
 ) => {
   const handlerFunction = `handle${capitalize(commandName)}Request`;
   return await commandHandlers[handlerFunction](
@@ -111,6 +145,6 @@ export const handleCommand = async (
     OpenAIStream,
     model,
     messagesToSend,
-    answerMessage
+    answerMessage,
   );
 };
