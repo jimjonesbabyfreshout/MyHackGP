@@ -431,7 +431,7 @@ const transformUserQueryToSubfinderCommand = (lastMessage: Message) => {
     - -collect-sources: Gathers source information for each subdomain. (optional)
     - -verbose: Provides an in-depth analysis if detailed insights are needed. (optional)
     - -help: Display help and all available flags. (optional)
-    Use these flags to align with the request's specific requirements or when '-help' is requested for help.
+    Do not include any flags not listed here. Use these flags to align with the request's specific requirements or when '-help' is requested for help.
   3. **Relevance and Efficiency**: Ensure that the flags chosen for the command are relevant and contribute to an effective and efficient subdomain discovery process.
 
   Example Commands:
