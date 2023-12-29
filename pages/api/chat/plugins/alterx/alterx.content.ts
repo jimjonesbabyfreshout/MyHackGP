@@ -1,6 +1,8 @@
 import { Message } from '@/types/chat';
 import endent from 'endent';
 
+import { checkToolRateLimit } from '@/pages/api/chat/plugins/tools';
+
 export const isAlterxCommand = (message: string) => {
   if (!message.startsWith('/')) return false;
 
@@ -137,6 +139,7 @@ export async function handleAlterxRequest(
   messagesToSend: Message[],
   answerMessage: Message,
   invokedByToolId: boolean,
+  authToken: any,
 ) {
   if (!enableAlterxFeature) {
     return new Response('The Alterx is disabled.', {
@@ -206,6 +209,12 @@ export async function handleAlterxRequest(
     });
   } else if (params.error) {
     return new Response(params.error, { status: 200, headers: corsHeaders });
+  }
+
+  const rateLimitCheck = await checkToolRateLimit(authToken);
+
+  if (rateLimitCheck.isRateLimited) {
+    return rateLimitCheck.response;
   }
 
   let alterxUrl = `${process.env.SECRET_GKE_PLUGINS_BASE_URL}/api/chat/plugins/alterx?`;

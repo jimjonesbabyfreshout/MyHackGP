@@ -1,6 +1,8 @@
 import { Message } from '@/types/chat';
 import endent from 'endent';
 
+import { checkToolRateLimit } from '@/pages/api/chat/plugins/tools';
+
 export const isGauCommand = (message: string) => {
   if (!message.startsWith('/')) return false;
 
@@ -192,6 +194,7 @@ export async function handleGauRequest(
   messagesToSend: Message[],
   answerMessage: Message,
   invokedByToolId: boolean,
+  authToken: any,
 ) {
   if (!enableGauFeature) {
     return new Response('The GAU is disabled.', {
@@ -262,6 +265,12 @@ export async function handleGauRequest(
     });
   } else if (params.error) {
     return new Response(params.error, { status: 200, headers: corsHeaders });
+  }
+
+  const rateLimitCheck = await checkToolRateLimit(authToken);
+
+  if (rateLimitCheck.isRateLimited) {
+    return rateLimitCheck.response;
   }
 
   let gauUrl = `${process.env.SECRET_GKE_PLUGINS_BASE_URL}/api/chat/plugins/gau?`;

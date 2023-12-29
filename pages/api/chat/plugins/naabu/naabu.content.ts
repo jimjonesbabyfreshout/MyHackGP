@@ -1,6 +1,8 @@
 import { Message } from '@/types/chat';
 import endent from 'endent';
 
+import { checkToolRateLimit } from '@/pages/api/chat/plugins/tools';
+
 export const isNaabuCommand = (message: string) => {
   if (!message.startsWith('/')) return false;
 
@@ -279,6 +281,7 @@ export async function handleNaabuRequest(
   messagesToSend: Message[],
   answerMessage: Message,
   invokedByToolId: boolean,
+  authToken: any,
 ) {
   if (!enableNaabuFeature) {
     return new Response('The Naabu feature is disabled.', {
@@ -349,6 +352,12 @@ export async function handleNaabuRequest(
     });
   } else if (params.error) {
     return new Response(params.error, { status: 200, headers: corsHeaders });
+  }
+
+  const rateLimitCheck = await checkToolRateLimit(authToken);
+
+  if (rateLimitCheck.isRateLimited) {
+    return rateLimitCheck.response;
   }
 
   let naabuUrl = `${process.env.SECRET_GKE_PLUGINS_BASE_URL}/api/chat/plugins/naabu?`;

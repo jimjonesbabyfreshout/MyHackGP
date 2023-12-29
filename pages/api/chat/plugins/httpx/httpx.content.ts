@@ -1,6 +1,8 @@
 import { Message } from '@/types/chat';
 import endent from 'endent';
 
+import { checkToolRateLimit } from '@/pages/api/chat/plugins/tools';
+
 export const isHttpxCommand = (message: string) => {
   if (!message.startsWith('/')) return false;
 
@@ -692,6 +694,7 @@ export async function handleHttpxRequest(
   messagesToSend: Message[],
   answerMessage: Message,
   invokedByToolId: boolean,
+  authToken: any,
 ) {
   if (!enableHttpxFeature) {
     return new Response('The Httpx is disabled.', {
@@ -762,6 +765,12 @@ export async function handleHttpxRequest(
     });
   } else if (params.error) {
     return new Response(params.error, { status: 200, headers: corsHeaders });
+  }
+
+  const rateLimitCheck = await checkToolRateLimit(authToken);
+
+  if (rateLimitCheck.isRateLimited) {
+    return rateLimitCheck.response;
   }
 
   let httpxUrl = `${process.env.SECRET_GKE_PLUGINS_BASE_URL}/api/chat/plugins/httpx?`;
@@ -1149,7 +1158,7 @@ function formatResponseString(urls: any[], params: HttpxParams) {
 
   const urlsFormatted = urls.join('\n');
   return (
-    '## [httpx](https://github.com/projectdiscovery/httpx) Scan Results\n' +
+    '## [HttpX](https://github.com/projectdiscovery/httpx) Scan Results\n' +
     '**Target**: "' +
     params.target +
     '"\n\n' +

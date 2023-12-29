@@ -85,7 +85,7 @@ const ToolSelector = () => {
             value={ToolID.HTTPX}
             className="dark:bg-[#343541] dark:text-white"
           >
-            {t('httpx: Web Analysis')}
+            {t('HttpX: Web Analysis')}
           </option>
           <option
             value={ToolID.NAABU}

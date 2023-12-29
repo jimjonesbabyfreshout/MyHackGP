@@ -107,6 +107,7 @@ type ToolHandlerFunction = (
   model: string,
   messagesToSend: Message[],
   answerMessage: Message,
+  authToken: any,
   invokedByToolId: boolean,
 ) => Promise<any>;
 
@@ -136,6 +137,7 @@ export const handleCommand = async (
   model: string,
   messagesToSend: Message[],
   answerMessage: Message,
+  authToken: any,
 ) => {
   const handlerFunction = `handle${capitalize(commandName)}Request`;
   return await commandHandlers[handlerFunction](
@@ -146,5 +148,40 @@ export const handleCommand = async (
     model,
     messagesToSend,
     answerMessage,
+    authToken,
   );
 };
+
+export async function checkToolRateLimit(authToken: any) {
+  try {
+    const rateLimitResponse = await fetch(
+      `${process.env.SECRET_TOOLS_RATELIMIT_FIREBASE_FUNCTION_URL}`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `${authToken}`,
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+
+    if (!rateLimitResponse.ok) {
+      const errorText = await rateLimitResponse.text();
+      return {
+        isRateLimited: true,
+        response: new Response(errorText, { headers: corsHeaders }),
+      };
+    }
+
+    return { isRateLimited: false };
+  } catch (error) {
+    console.error('Error checking tool rate limit:', error);
+    return {
+      isRateLimited: true,
+      response: new Response('Error checking rate limit', {
+        status: 500,
+        headers: corsHeaders,
+      }),
+    };
+  }
+}

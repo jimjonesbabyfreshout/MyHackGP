@@ -1,6 +1,8 @@
 import { Message } from '@/types/chat';
 import endent from 'endent';
 
+import { checkToolRateLimit } from '@/pages/api/chat/plugins/tools';
+
 export const isSubfinderCommand = (message: string) => {
   if (!message.startsWith('/')) return false;
 
@@ -212,6 +214,7 @@ export async function handleSubfinderRequest(
   model: string,
   messagesToSend: Message[],
   answerMessage: Message,
+  authToken: any,
   invokedByToolId: boolean,
 ) {
   if (!enableSubfinderFeature) {
@@ -283,6 +286,12 @@ export async function handleSubfinderRequest(
     });
   } else if (params.error) {
     return new Response(params.error, { status: 200, headers: corsHeaders });
+  }
+
+  const rateLimitCheck = await checkToolRateLimit(authToken);
+
+  if (rateLimitCheck.isRateLimited) {
+    return rateLimitCheck.response;
   }
 
   let subfinderUrl = `${process.env.SECRET_GKE_PLUGINS_BASE_URL}/api/chat/plugins/subfinder?`;
@@ -446,7 +455,7 @@ const transformUserQueryToSubfinderCommand = (lastMessage: Message) => {
     - -filter string[]: Exclude certain subdomains in comma-separated format. (optional)
     - -json: Output in JSON format. (optional)
     - -collect-sources: Include source information for each subdomain. (optional)
-    - -ip: Include host IP in output (with -active). (optional)
+    - -ip: Include host IP in output (always should go with -active flag). (optional)
     - -timeout int: Set timeout limit (default 30 seconds). (optional)
     - -help: Display help and all available flags. (optional)
     Do not include any flags not listed here. Use these flags to align with the request's specific requirements or when '-help' is requested for help.
