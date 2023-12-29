@@ -22,8 +22,9 @@ const displayHelpGuide = () => {
        -d, -domain string[]   domains to find subdomains for
 
     CONFIGURATION:
-       -nW, -active   display active subdomains only
-       -timeout int   seconds to wait before timing out (default 30)
+       -r string[]        comma separated list of resolvers to use
+       -nW, -active       display active subdomains only
+       -ei, -exclude-ip   exclude IPs from the list of domains
 
     FILTER:
        -m, -match string[]    subdomain or list of subdomain to match (comma separated)
@@ -32,18 +33,27 @@ const displayHelpGuide = () => {
     OUTPUT:
        -oJ, -json              write output in JSONL(ines) format
        -cs, -collect-sources   include all sources in the output
-       -v, -verbose            use AI to provide key observations, insights, recommended Actions about identified subdomains`;
+       -oI, -ip                include host IP in output (-active only)
+       
+    OPTIMIZATIONS:
+       -timeout int   seconds to wait before timing out (default 30)`;
 };
 
 interface SubfinderParams {
   domain: string[];
-  timeout: number;
+  // CONFIGURATION
+  resolvers: string[];
+  onlyActive: boolean;
+  excludeIP: boolean;
+  // FILTER
   match: string[];
   filter: string[];
-  onlyActive: boolean;
-  includeSources: boolean;
+  // OUTPUT
   outputJson: boolean;
-  outputVerbose: boolean;
+  includeSources: boolean;
+  ip: boolean;
+  // OPTIMIZATIONS:
+  timeout: number;
   error: string | null;
 }
 
@@ -54,13 +64,19 @@ const parseCommandLine = (input: string) => {
 
   const params: SubfinderParams = {
     domain: [],
-    timeout: 30,
+    // CONFIGURATION
+    resolvers: [],
+    onlyActive: false,
+    excludeIP: false,
+    // FILTER
     match: [],
     filter: [],
-    onlyActive: false,
-    includeSources: false,
+    // OUTPUT
     outputJson: false,
-    outputVerbose: false,
+    includeSources: false,
+    ip: false,
+    // OPTIMIZATIONS:
+    timeout: 30,
     error: null,
   };
 
@@ -77,6 +93,11 @@ const parseCommandLine = (input: string) => {
     /^[a-zA-Z0-9.-]+$/.test(domain) && domain.length <= maxDomainLength;
   const isValidSubdomain = (subdomain: string) =>
     /^[a-zA-Z0-9.-]+$/.test(subdomain);
+  const isValidIpAddress = (ip: string) => {
+    const regexPattern =
+      /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    return regexPattern.test(ip);
+  };
 
   for (let i = 0; i < args.length; i++) {
     switch (args[i]) {
@@ -91,6 +112,17 @@ const parseCommandLine = (input: string) => {
             params.domain.push(domain.trim());
           } else {
             params.error = `🚨 Invalid or too long domain provided (max ${maxDomainLength} characters)`;
+            return params;
+          }
+        }
+        break;
+      case '-r':
+        const resolverArgs = args[++i].split(',');
+        for (const resolver of resolverArgs) {
+          if (isValidIpAddress(resolver.trim())) {
+            params.resolvers.push(resolver.trim());
+          } else {
+            params.error = `🚨 Invalid IP address provided for resolver`;
             return params;
           }
         }
@@ -136,6 +168,10 @@ const parseCommandLine = (input: string) => {
       case '-active':
         params.onlyActive = true;
         break;
+      case '-ei':
+      case '-exclude-ip':
+        params.excludeIP = true;
+        break;
       case '-cs':
       case '-collect-sources':
         params.includeSources = true;
@@ -144,9 +180,9 @@ const parseCommandLine = (input: string) => {
       case '-json':
         params.outputJson = true;
         break;
-      case '-v':
-      case '-verbose':
-        params.outputVerbose = true;
+      case '-oI':
+      case '-ip':
+        params.ip = true;
         break;
       default:
         params.error = `🚨 Invalid or unrecognized flag: ${args[i]}`;
@@ -255,14 +291,24 @@ export async function handleSubfinderRequest(
   if (params.match && params.match.length > 0) {
     subfinderUrl += '&' + params.match.map((m) => `match=${m}`).join('&');
   }
+  if (params.resolvers && params.resolvers.length > 0) {
+    subfinderUrl +=
+      '&' + params.resolvers.map((r) => `resolver=${r}`).join('&');
+  }
   if (params.filter && params.filter.length > 0) {
     subfinderUrl += '&' + params.filter.map((f) => `filter=${f}`).join('&');
   }
   if (params.onlyActive) {
     subfinderUrl += `&onlyActive=true`;
   }
+  if (params.excludeIP) {
+    subfinderUrl += `&excludeIP=true`;
+  }
   if (params.includeSources) {
     subfinderUrl += `&includeSources=true`;
+  }
+  if (params.ip) {
+    subfinderUrl += `&ip=true`;
   }
   if (params.timeout !== 30) {
     subfinderUrl += `&timeout=${params.timeout}`;
@@ -356,37 +402,7 @@ export async function handleSubfinderRequest(
         );
         sendMessage(responseString, true);
 
-        if (params.outputVerbose) {
-          const answerPrompt = createAnswerPromptSubfinder(
-            params.domain.join(', '),
-            extractHostsFromSubfinderData(subfinderData),
-          );
-          answerMessage.content = answerPrompt;
-
-          const openAIResponseStream = await OpenAIStream(
-            model,
-            messagesToSend,
-            answerMessage,
-          );
-          const reader = openAIResponseStream.getReader();
-
-          // @ts-expect-error
-          reader.read().then(function processText({ done, value }) {
-            if (done) {
-              controller.close();
-              return;
-            }
-
-            const decodedValue = new TextDecoder().decode(value, {
-              stream: true,
-            });
-            sendMessage(decodedValue);
-
-            return reader.read().then(processText);
-          });
-        } else {
-          controller.close();
-        }
+        controller.close();
       } catch (error) {
         clearInterval(intervalId);
         let errorMessage =
@@ -423,13 +439,15 @@ const transformUserQueryToSubfinderCommand = (lastMessage: Message) => {
   1. **Direct Domain Inclusion**: When discovering subdomains for a specific domain, directly embed the domain in the command instead of using file references.
     - -domain string[]: Identifies the target domain(s) for subdomain discovery directly in the command. (required)
   2. **Selective Flag Use**: Carefully select flags that are directly pertinent to the task. The available flags are:
-    - -active: Includes only active subdomains if necessary. (optional)
-    - -timeout int: Sets a timeout limit (default is 30 seconds). (optional)
-    - -match string[]: Matches specific subdomains, listed in a comma-separated format. (optional)
-    - -filter string[]: Excludes certain subdomains, also in a comma-separated format. (optional)
-    - -json: Outputs results in a structured JSON format. (optional)
-    - -collect-sources: Gathers source information for each subdomain. (optional)
-    - -verbose: Provides an in-depth analysis if detailed insights are needed. (optional)
+    - -r string[]: Use specified resolvers. (e.g., 8.8.8.8) (optional)
+    - -active: Display only active subdomains. (optional)
+    - -exclude-ip: Exclude IPs from the domain list. (optional)
+    - -match string[]: Match specific subdomains in comma-separated format. (optional)
+    - -filter string[]: Exclude certain subdomains in comma-separated format. (optional)
+    - -json: Output in JSON format. (optional)
+    - -collect-sources: Include source information for each subdomain. (optional)
+    - -ip: Include host IP in output (with -active). (optional)
+    - -timeout int: Set timeout limit (default 30 seconds). (optional)
     - -help: Display help and all available flags. (optional)
     Do not include any flags not listed here. Use these flags to align with the request's specific requirements or when '-help' is requested for help.
   3. **Relevance and Efficiency**: Ensure that the flags chosen for the command are relevant and contribute to an effective and efficient subdomain discovery process.
@@ -516,37 +534,4 @@ const createResponseString = (
     '\n' +
     '```\n'
   );
-};
-
-const createAnswerPromptSubfinder = (domain: string, subfinderData: string) => {
-  if (subfinderData.length > 10000) {
-    subfinderData = subfinderData.slice(0, 10000);
-  }
-
-  const structuredData = `
-  Domain: ${domain}
-  Identified Subdomains: 
-  ${subfinderData}
-  `;
-
-  const messageContent = endent`
-  Generate a comprehensive report for the Subfinder scan conducted on the domain "${domain}". The report should highlight key findings and insights for easy interpretation. Assume that the Subfinder tool has already completed the scan and provided detailed data on subdomains.
-  
-  Instructions:
-  1. **Highlight Key Observations**: Analyze the subdomains for any notable characteristics or security implications. Focus on aspects like unusual subdomain patterns, potential security risks, or subdomains that may need immediate attention.
-  2. **Provide Insightful Analysis**: Offer insights based on the subdomains' structure, naming conventions, and other relevant details derived from the scan.
-  3. **Recommend Next Steps**: Outline strategic methods for probing identified subdomains for weaknesses and suggest tools or techniques for deeper assessment.
-  
-  Report Template:
-
-  ### Key Observations and Insights
-  - [Insights and notable observations about the subdomains]
-
-  ### Recommended Actions
-  - [Propose methods and tools for investigating the identified subdomains further]
-
-  --- Subfinder Data for Analysis ---
-  ${structuredData}`;
-
-  return messageContent;
 };
