@@ -405,6 +405,19 @@ export async function handleSubfinderRequest(
           });
         }
 
+        if (params.ip) {
+          const responseString = createResponseString(
+            params.domain,
+            extractHostIpSourceFromData(subfinderData),
+          );
+          sendMessage(responseString, true);
+          controller.close();
+          return new Response(subfinderData, {
+            status: 200,
+            headers: corsHeaders,
+          });
+        }
+
         const responseString = createResponseString(
           params.domain,
           extractHostsFromSubfinderData(subfinderData),
@@ -511,6 +524,26 @@ const extractHostsAndSourcesFromData = (data: string) => {
         const host = item.host;
         const sources = item.sources ? `[${item.sources.join(', ')}]` : '[]';
         return `${host},${sources}`;
+      })
+      .join('\n');
+  } catch (error) {
+    console.error('Error processing data:', error);
+    return '';
+  }
+};
+
+const extractHostIpSourceFromData = (data: string) => {
+  try {
+    const validJsonString = '[' + data.replace(/}{/g, '},{') + ']';
+
+    const jsonData = JSON.parse(validJsonString);
+
+    return jsonData
+      .map((item: { host: string; ip: string; source: string }) => {
+        const host = item.host || '';
+        const ip = item.ip || '';
+        const source = item.source || '';
+        return `${host},${ip},${source}`;
       })
       .join('\n');
   } catch (error) {
