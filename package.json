@@ -10,7 +10,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@babel/traverse": "^7.23.6",
+    "@babel/traverse": "^7.23.7",
     "@dqbd/tiktoken": "^1.0.7",
     "@tabler/icons-react": "^2.44.0",
     "@upstash/ratelimit": "^0.4.4",
