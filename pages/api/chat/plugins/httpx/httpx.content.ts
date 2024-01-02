@@ -693,8 +693,8 @@ export async function handleHttpxRequest(
   model: string,
   messagesToSend: Message[],
   answerMessage: Message,
-  invokedByToolId: boolean,
   authToken: any,
+  invokedByToolId: boolean,
 ) {
   if (!enableHttpxFeature) {
     return new Response('The Httpx is disabled.', {

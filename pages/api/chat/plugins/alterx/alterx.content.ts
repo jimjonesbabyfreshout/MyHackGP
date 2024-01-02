@@ -138,8 +138,8 @@ export async function handleAlterxRequest(
   model: string,
   messagesToSend: Message[],
   answerMessage: Message,
-  invokedByToolId: boolean,
   authToken: any,
+  invokedByToolId: boolean,
 ) {
   if (!enableAlterxFeature) {
     return new Response('The Alterx is disabled.', {

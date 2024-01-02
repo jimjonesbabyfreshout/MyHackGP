@@ -348,8 +348,8 @@ export async function handleKatanaRequest(
   model: string,
   messagesToSend: Message[],
   answerMessage: Message,
-  invokedByToolId: boolean,
   authToken: any,
+  invokedByToolId: boolean,
 ) {
   if (!enableKatanaFeature) {
     return new Response('The Katana feature is disabled.', {

@@ -193,8 +193,8 @@ export async function handleGauRequest(
   model: string,
   messagesToSend: Message[],
   answerMessage: Message,
-  invokedByToolId: boolean,
   authToken: any,
+  invokedByToolId: boolean,
 ) {
   if (!enableGauFeature) {
     return new Response('The GAU is disabled.', {

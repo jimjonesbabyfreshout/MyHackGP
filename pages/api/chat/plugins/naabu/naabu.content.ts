@@ -280,8 +280,8 @@ export async function handleNaabuRequest(
   model: string,
   messagesToSend: Message[],
   answerMessage: Message,
-  invokedByToolId: boolean,
   authToken: any,
+  invokedByToolId: boolean,
 ) {
   if (!enableNaabuFeature) {
     return new Response('The Naabu feature is disabled.', {
